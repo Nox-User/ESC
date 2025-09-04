@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciador de Itens com Revisões</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 { margin-bottom: 10px; }
+    .item, .cliente, .interna {
+      margin: 5px 0 5px 20px;
+      padding: 4px;
+      border-left: 2px solid #999;
+    }
+    .form-section {
+      margin: 10px 0;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 5px;
+    }
+    .nota {
+      font-size: 0.9em;
+      color: #555;
+      margin-left: 15px;
+    }
+    .toggle {
+      cursor: pointer;
+      margin-right: 5px;
+      font-weight: bold;
+      user-select: none;
+    }
+    .delete-btn {
+      margin-left: 10px;
+      font-size: 0.8em;
+      color: red;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .delete-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerenciador de Itens</h1>
+
+  <!-- Formulário para adicionar novo item -->
+  <div class="form-section">
+    <h3>Novo Item</h3>
+    <input id="itemNome" placeholder="Nome do item">
+    <button onclick="addItem()">Adicionar</button>
+  </div>
+
+  <!-- Formulário para adicionar revisão cliente -->
+  <div class="form-section">
+    <h3>Nova Revisão Cliente</h3>
+    <select id="itemSelect"></select>
+    <input id="revClienteNome" placeholder="Nome da revisão cliente">
+    <input id="revClienteNota" placeholder="Nota (o que foi revisado)">
+    <button onclick="addRevCliente()">Adicionar</button>
+  </div>
+
+  <!-- Formulário para adicionar revisão interna -->
+  <div class="form-section">
+    <h3>Nova Revisão Interna</h3>
+    <select id="revClienteSelect"></select>
+    <input id="revInternaNome" placeholder="Nome da revisão interna">
+    <input id="revInternaNota" placeholder="Nota (o que foi revisado)">
+    <button onclick="addRevInterna()">Adicionar</button>
+  </div>
+
+  <h2>Itens e Revisões</h2>
+  <div id="estrutura"></div>
+
+  <script>
+    let data = JSON.parse(localStorage.getItem("itens")) || [];
+
+    function salvar() {
+      localStorage.setItem("itens", JSON.stringify(data));
+      render();
+    }
+
+    function addItem() {
+      const nome = document.getElementById("itemNome").value.trim();
+      if (!nome) return alert("Digite um nome!");
+
+      // Verificação se já existe item com mesmo nome
+      const existe = data.some(item => item.nome.toLowerCase() === nome.toLowerCase());
+      if (existe) return alert("Já existe um item com esse nome!");
+
+      data.push({ nome, revisoes_cliente: [] });
+      document.getElementById("itemNome").value = "";
+      salvar();
+    }
+
+    function addRevCliente() {
+      const itemIndex = document.getElementById("itemSelect").value;
+      const nome = document.getElementById("revClienteNome").value.trim();
+      const nota = document.getElementById("revClienteNota").value.trim();
+      if (itemIndex === "" || !nome) return alert("Selecione item e nome!");
+
+      // Verificação se já existe revisão cliente com mesmo nome no item
+      const existe = data[itemIndex].revisoes_cliente.some(
+        rev => rev.nome.toLowerCase() === nome.toLowerCase()
+      );
+      if (existe) return alert("Já existe essa revisão cliente para o item!");
+
+      data[itemIndex].revisoes_cliente.push({ nome, nota, revisoes_internas: [] });
+      document.getElementById("revClienteNome").value = "";
+      document.getElementById("revClienteNota").value = "";
+      salvar();
+    }
+
+    function addRevInterna() {
+      const ids = document.getElementById("revClienteSelect").value.split("-");
+      const nome = document.getElementById("revInternaNome").value.trim();
+      const nota = document.getElementById("revInternaNota").value.trim();
+      if (ids.length < 2 || !nome) return alert("Selecione revisão cliente e nome!");
+      const [itemIndex, revIndex] = ids.map(Number);
+
+      // Verificação se já existe revisão interna igual dentro da revisão cliente
+      const existe = data[itemIndex].revisoes_cliente[revIndex].revisoes_internas.some(
+        rev => rev.nome.toLowerCase() === nome.toLowerCase()
+      );
+      if (existe) return alert("Já existe essa revisão interna dentro desta revisão cliente!");
+
+      data[itemIndex].revisoes_cliente[revIndex].revisoes_internas.push({ nome, nota });
+      document.getElementById("revInternaNome").value = "";
+      document.getElementById("revInternaNota").value = "";
+      salvar();
+    }
+
+    function deleteItem(i) {
+      if (confirm("Excluir este item e todas as revisões?")) {
+        data.splice(i, 1);
+        salvar();
+      }
+    }
+
+    function deleteRevCliente(i, j) {
+      if (confirm("Excluir esta revisão cliente e suas revisões internas?")) {
+        data[i].revisoes_cliente.splice(j, 1);
+        salvar();
+      }
+    }
+
+    function deleteRevInterna(i, j, k) {
+      if (confirm("Excluir esta revisão interna?")) {
+        data[i].revisoes_cliente[j].revisoes_internas.splice(k, 1);
+        salvar();
+      }
+    }
+
+    function toggleVisibility(el, toggle) {
+      if (el.style.display === "none") {
+        el.style.display = "block";
+        toggle.textContent = "▼";
+      } else {
+        el.style.display = "none";
+        toggle.textContent = "▶";
+      }
+    }
+
+    function render() {
+      // atualizar selects
+      const itemSelect = document.getElementById("itemSelect");
+      itemSelect.innerHTML = data.map((item, i) => `<option value="${i}">${item.nome}</option>`).join("");
+
+      const revClienteSelect = document.getElementById("revClienteSelect");
+      revClienteSelect.innerHTML = data.flatMap((item, i) =>
+        item.revisoes_cliente.map((rev, j) =>
+          `<option value="${i}-${j}">${item.nome} -> ${rev.nome}</option>`
+        )
+      ).join("");
+
+      // renderizar estrutura
+      const estrutura = document.getElementById("estrutura");
+      estrutura.innerHTML = "";
+      data.forEach((item, i) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "item";
+
+        // Toggle para o item
+        const toggle = document.createElement("span");
+        toggle.className = "toggle";
+        toggle.textContent = "▼";
+
+        const itemLabel = document.createElement("strong");
+        itemLabel.textContent = item.nome;
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Excluir";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => deleteItem(i);
+
+        const contentDiv = document.createElement("div");
+
+        toggle.onclick = () => toggleVisibility(contentDiv, toggle);
+
+        itemDiv.appendChild(toggle);
+        itemDiv.appendChild(itemLabel);
+        itemDiv.appendChild(delBtn);
+        itemDiv.appendChild(contentDiv);
+
+        item.revisoes_cliente.forEach((revC, j) => {
+          const revClienteDiv = document.createElement("div");
+          revClienteDiv.className = "cliente";
+
+          const toggleC = document.createElement("span");
+          toggleC.className = "toggle";
+          toggleC.textContent = "▼";
+
+          const revLabel = document.createElement("span");
+          revLabel.textContent = " " + revC.nome;
+
+          const revNota = document.createElement("div");
+          revNota.className = "nota";
+          revNota.textContent = "Nota: " + (revC.nota || "-");
+
+          const delBtnC = document.createElement("button");
+          delBtnC.textContent = "Excluir";
+          delBtnC.className = "delete-btn";
+          delBtnC.onclick = () => deleteRevCliente(i, j);
+
+          const contentC = document.createElement("div");
+
+          toggleC.onclick = () => toggleVisibility(contentC, toggleC);
+
+          revClienteDiv.appendChild(toggleC);
+          revClienteDiv.appendChild(revLabel);
+          revClienteDiv.appendChild(delBtnC);
+          revClienteDiv.appendChild(revNota);
+          revClienteDiv.appendChild(contentC);
+
+          revC.revisoes_internas.forEach((revI, k) => {
+            const revInternaDiv = document.createElement("div");
+            revInternaDiv.className = "interna";
+
+            revInternaDiv.innerHTML = `↳ ${revI.nome} <div class="nota">Nota: ${revI.nota || "-"}</div>`;
+
+            const delBtnI = document.createElement("button");
+            delBtnI.textContent = "Excluir";
+            delBtnI.className = "delete-btn";
+            delBtnI.onclick = () => deleteRevInterna(i, j, k);
+
+            revInternaDiv.appendChild(delBtnI);
+            contentC.appendChild(revInternaDiv);
+          });
+
+          contentDiv.appendChild(revClienteDiv);
+        });
+
+        estrutura.appendChild(itemDiv);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

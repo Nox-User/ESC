@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciador de Itens com Revisões</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 { margin-bottom: 10px; }
+    .item, .cliente, .interna {
+      margin: 5px 0 5px 20px;
+      padding: 4px;
+      border-left: 2px solid #999;
+    }
+    .form-section {
+      margin: 10px 0;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerenciador de Itens</h1>
+
+  <!-- Formulário para adicionar novo item -->
+  <div class="form-section">
+    <h3>Novo Item</h3>
+    <input id="itemNome" placeholder="Nome do item">
+    <button onclick="addItem()">Adicionar</button>
+  </div>
+
+  <!-- Formulário para adicionar revisão cliente -->
+  <div class="form-section">
+    <h3>Nova Revisão Cliente</h3>
+    <select id="itemSelect"></select>
+    <input id="revClienteNome" placeholder="Nome da revisão cliente">
+    <button onclick="addRevCliente()">Adicionar</button>
+  </div>
+
+  <!-- Formulário para adicionar revisão interna -->
+  <div class="form-section">
+    <h3>Nova Revisão Interna</h3>
+    <select id="revClienteSelect"></select>
+    <input id="revInternaNome" placeholder="Nome da revisão interna">
+    <button onclick="addRevInterna()">Adicionar</button>
+  </div>
+
+  <h2>Itens e Revisões</h2>
+  <div id="estrutura"></div>
+
+  <script>
+    let data = JSON.parse(localStorage.getItem("itens")) || [];
+
+    function salvar() {
+      localStorage.setItem("itens", JSON.stringify(data));
+      render();
+    }
+
+    function addItem() {
+      const nome = document.getElementById("itemNome").value.trim();
+      if (!nome) return alert("Digite um nome!");
+      data.push({ nome, revisoes_cliente: [] });
+      document.getElementById("itemNome").value = "";
+      salvar();
+    }
+
+    function addRevCliente() {
+      const itemIndex = document.getElementById("itemSelect").value;
+      const nome = document.getElementById("revClienteNome").value.trim();
+      if (itemIndex === "" || !nome) return alert("Selecione item e nome!");
+      data[itemIndex].revisoes_cliente.push({ nome, revisoes_internas: [] });
+      document.getElementById("revClienteNome").value = "";
+      salvar();
+    }
+
+    function addRevInterna() {
+      const ids = document.getElementById("revClienteSelect").value.split("-");
+      const nome = document.getElementById("revInternaNome").value.trim();
+      if (ids.length < 2 || !nome) return alert("Selecione revisão cliente e nome!");
+      const [itemIndex, revIndex] = ids.map(Number);
+      data[itemIndex].revisoes_cliente[revIndex].revisoes_internas.push({ nome });
+      document.getElementById("revInternaNome").value = "";
+      salvar();
+    }
+
+    function render() {
+      // atualizar selects
+      const itemSelect = document.getElementById("itemSelect");
+      itemSelect.innerHTML = data.map((item, i) => `<option value="${i}">${item.nome}</option>`).join("");
+
+      const revClienteSelect = document.getElementById("revClienteSelect");
+      revClienteSelect.innerHTML = data.flatMap((item, i) =>
+        item.revisoes_cliente.map((rev, j) =>
+          `<option value="${i}-${j}">${item.nome} -> ${rev.nome}</option>`
+        )
+      ).join("");
+
+      // renderizar estrutura
+      const estrutura = document.getElementById("estrutura");
+      estrutura.innerHTML = "";
+      data.forEach((item, i) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "item";
+        itemDiv.innerHTML = `<strong>${item.nome}</strong>`;
+        item.revisoes_cliente.forEach((revC, j) => {
+          const revClienteDiv = document.createElement("div");
+          revClienteDiv.className = "cliente";
+          revClienteDiv.innerHTML = `↳ ${revC.nome}`;
+          revC.revisoes_internas.forEach((revI) => {
+            const revInternaDiv = document.createElement("div");
+            revInternaDiv.className = "interna";
+            revInternaDiv.innerHTML = `↳ ${revI.nome}`;
+            revClienteDiv.appendChild(revInternaDiv);
+          });
+          itemDiv.appendChild(revClienteDiv);
+        });
+        estrutura.appendChild(itemDiv);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

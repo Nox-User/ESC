@@ -1,0 +1,35 @@
+@import url(https://fonts.googleapis.com/css2?family=Palanquin:wght@100;200;300;400;500;600;700&display=swap);
+
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html{
+    position: relative;
+}
+
+body {
+    flex-direction: column;
+    justify-content: center;
+    background-image: #edecf6;
+    background: #edecf6;
+    font-family: "Palanquin", sans-serif;
+}
+
+/* Estilos específicos para overview de projetos */
+.projeto-overview-container {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    min-height: 100vh;
+}
+
+.projeto-table-header {
+    background: #2563eb;
+    color: white;
+}
+
+.projeto-row:hover {
+    background: rgba(37, 99, 235, 0.05);
+}
+
