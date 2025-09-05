@@ -1316,7 +1316,7 @@ function ProdutosPage(mount){
             <option value="CATERPILLAR">CATERPILLAR</option>
             <option value="KION">KION</option>
             <option value="TOYOTA">TOYOTA</option>
-            <option value="CL CALDEIRARIA">CL CALDEIRARIA</option             
+            <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>          
           </select>
           
           <select id="editComplexidade" class="border px-3 py-2 rounded">
