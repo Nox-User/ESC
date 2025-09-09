@@ -672,7 +672,7 @@ function renderizarGraficos() {
         backgroundColor: '#3B82F6'
       }, {
         label: 'Meta',
-        data: new Array(12).fill(5), // Valor fixo de 5 melhorias por mês
+        data: new Array(12).fill(16), // Valor fixo de 16 melhorias por mês
         type: 'line',
         borderColor: '#EF4444',
         backgroundColor: 'transparent',
