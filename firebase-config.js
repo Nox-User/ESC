@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, get, child, push, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, get, child, push, update, remove, set } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 let app;
 let db;
@@ -66,6 +67,29 @@ export const firebaseService = {
     }
   },
 
+  // Dentro de firebaseService
+  async getOFRs() {
+    const snapshot = await get(child(ref(db), 'ofrs'));
+    if (!snapshot.exists()) return [];
+    return Object.entries(snapshot.val()).map(([id, data]) => ({ id, ...data }));
+  },
+
+  async addOFR(ofr) {
+    const newRef = push(ref(db, 'ofrs'));
+    await set(newRef, ofr);
+    return newRef.key;
+  },
+
+  async updateOFR(id, dados) {
+    await update(ref(db, `ofrs/${id}`), dados);
+  },
+
+  async deleteOFR(id) {
+    await remove(ref(db, `ofrs/${id}`));
+  },
+
+
+  
   // === MELHORIAS ===
   // Buscar todas as melhorias
   async getMelhorias() {
