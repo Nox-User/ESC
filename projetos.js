@@ -71,6 +71,10 @@ const projetoService = {
   }
 };
 
+// Estado da aplicação para OFR
+let ofrs = [];
+let ofrEditando = null;
+
 // Função para renderizar a aplicação
 function renderApp() {
   const root = $('#root');
@@ -99,11 +103,13 @@ function Sidebar({ mount }) {
       { id: '0', title: 'Dashboard', notifications: false },
       { id: '1', title: 'Lista de Projetos', notifications: false },
       { id: '2', title: 'Relatórios', notifications: false },
-      { id: '3', title: 'Configurações', notifications: false },
+      { id: '3', title: 'OFR - Gráficos', notifications: false },
+      { id: '4', title: 'Lista de OFR', notifications: false },
     ],
     [
-      { id: '4', title: 'Ajuda', notifications: false },
-      { id: '5', title: 'Suporte', notifications: false },
+      { id: '5', title: 'Ajuda', notifications: false },
+      { id: '6', title: 'Suporte', notifications: false },
+      { id: '7', title: 'Configurações', notifications: false },
     ],
   ];
 
@@ -162,11 +168,15 @@ function Sidebar({ mount }) {
         } else if (selected === '2') {
           renderRelatorios(content);
         } else if (selected === '3') {
+          renderOFRGraficos(content);   // OFR - Gráficos
+        } else if (selected === '4') {
+          renderListaOFR(content);      // Lista de OFR
+        } else if (selected === '7') {
           renderConfiguracoes(content);
         } else {
           renderMainContent();
-          atualizarDashboard();  // <--- adiciona isso
-          renderizarGraficos();  // <--- e isso
+          atualizarDashboard();
+          renderizarGraficos();
         }
       });
     });
@@ -188,9 +198,11 @@ function Sidebar({ mount }) {
       0: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path></svg>`,
       1: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" clip-rule="evenodd"></path></svg>`,
       2: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
-      3: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>`,
-      4: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`,
-      5: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>`,
+      3: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" clip-rule="evenodd"></path></svg>`,
+      4: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
+      5: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`,
+      6: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>`,
+      7: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>`,
     };
     return icons[id] || '';
   }
@@ -331,17 +343,20 @@ function renderListaProjetos(content) {
       <div class="bg-white rounded-lg shadow-sm">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Complexidade</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Number</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pilares</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Complexidade</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Number</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pilares</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Início</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Fim</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
             <tbody id="tabelaProjetosCompleta" class="bg-white divide-y divide-gray-200">
               <!-- Conteúdo será inserido dinamicamente -->
             </tbody>
@@ -849,6 +864,489 @@ window.excluirProjeto = async function(id) {
     } catch (error) {
       console.error('Erro ao excluir projeto:', error);
       alert('Erro ao excluir projeto. Tente novamente.');
+    }
+  }
+};
+
+let ofrSetorChartInstance = null;
+let ofrTempoSetorChartInstance = null;
+let ofrAtividadeChartInstance = null;
+let ofrTempoAtividadeChartInstance = null;
+
+// Função para renderizar os gráficos da aba OFR
+function renderizarOFRGraficos() {
+  // Dados fictícios para teste – depois você pode substituir pelos dados vindos do Firebase
+  const setores = ['Manutenção', 'Solda', 'Usinagem', 'Dobra'];
+  const processosSetor = [2, 17, 2, 4];
+
+  const tempoFabricacaoSetor = [40, 260, 0, 0]; // minutos
+  const tempoRetrabalhoSetor = [15, 1025, 90, 265]; // minutos
+
+  const atividades = ['Fabricação', 'Reparo/Retrabalho'];
+  const percAtividades = [20, 80];
+
+  const meses = ['Jan', 'Fev', 'Mar', 'Abr'];
+  const tempoFabricacaoMes = [0, 120, 180, 0]; // minutos
+  const tempoRetrabalhoMes = [430, 330, 590, 45]; // minutos
+
+  // 🔄 Destroi instâncias anteriores para evitar duplicar
+  if (ofrSetorChartInstance) ofrSetorChartInstance.destroy();
+  if (ofrTempoSetorChartInstance) ofrTempoSetorChartInstance.destroy();
+  if (ofrAtividadeChartInstance) ofrAtividadeChartInstance.destroy();
+  if (ofrTempoAtividadeChartInstance) ofrTempoAtividadeChartInstance.destroy();
+
+  // 📊 Processo por Setor
+  const ctxSetor = document.getElementById('ofrSetorChart').getContext('2d');
+  ofrSetorChartInstance = new Chart(ctxSetor, {
+    type: 'bar',
+    data: {
+      labels: setores,
+      datasets: [{
+        label: 'Processos',
+        data: processosSetor,
+        backgroundColor: '#3B82F6'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // 📊 Tempo de Processo por Setor
+  const ctxTempoSetor = document.getElementById('ofrTempoSetorChart').getContext('2d');
+  ofrTempoSetorChartInstance = new Chart(ctxTempoSetor, {
+    type: 'bar',
+    data: {
+      labels: setores,
+      datasets: [
+        {
+          label: 'Fabricação',
+          data: tempoFabricacaoSetor,
+          backgroundColor: '#3B82F6'
+        },
+        {
+          label: 'Reparo/Retrabalho',
+          data: tempoRetrabalhoSetor,
+          backgroundColor: '#F97316'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // 📊 % Processo por Atividade
+  const ctxAtividade = document.getElementById('ofrAtividadeChart').getContext('2d');
+  ofrAtividadeChartInstance = new Chart(ctxAtividade, {
+    type: 'pie',
+    data: {
+      labels: atividades,
+      datasets: [{
+        data: percAtividades,
+        backgroundColor: ['#3B82F6', '#F97316']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+
+  // 📊 Tempo de Processo por Atividade (Mensal)
+  const ctxTempoAtividade = document.getElementById('ofrTempoAtividadeChart').getContext('2d');
+  ofrTempoAtividadeChartInstance = new Chart(ctxTempoAtividade, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        {
+          label: 'Fabricação',
+          data: tempoFabricacaoMes,
+          backgroundColor: '#3B82F6'
+        },
+        {
+          label: 'Reparo/Retrabalho',
+          data: tempoRetrabalhoMes,
+          backgroundColor: '#F97316'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+      const filtroMes = $('#filtroMes');
+    const filtroAno = $('#filtroAno');
+    if (filtroMes && filtroAno) {
+        filtroMes.addEventListener('change', atualizarDashboardOFR);
+        filtroAno.addEventListener('change', atualizarDashboardOFR);
+    }
+}
+
+
+function renderOFRGraficos(content) {
+  content.innerHTML = `
+    <div class="max-w-7xl mx-auto p-6">
+      <h1 class="text-3xl font-bold text-gray-900 mb-6">OFR - Gráficos</h1>
+      <div class="flex items-center gap-2 mb-4">
+        <label class="text-sm font-medium text-gray-600">Filtrar por mês:</label>
+        <select id="filtroMes" class="border px-2 py-1 rounded">
+          <option value="0">Jan</option>
+          <option value="1">Fev</option>
+          <option value="2">Mar</option>
+          <option value="3">Abr</option>
+          <option value="4">Mai</option>
+          <option value="5">Jun</option>
+          <option value="6">Jul</option>
+          <option value="7">Ago</option>
+          <option value="8">Set</option>
+          <option value="9">Out</option>
+          <option value="10">Nov</option>
+          <option value="11">Dez</option>
+        </select>
+
+        <label class="text-sm font-medium text-gray-600">Ano:</label>
+        <input type="number" id="filtroAno" class="border px-2 py-1 rounded w-20" value="2025">
+      </div>
+
+      <!-- Cards resumo -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center">
+            <div class="p-2 bg-blue-100 rounded-lg">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total de OFR</p>
+              <p class="text-2xl font-semibold text-gray-900" id="totalOFR">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center">
+            <div class="p-2 bg-green-100 rounded-lg">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">OFR no Mês</p>
+              <p class="text-2xl font-semibold text-gray-900" id="ofrMes">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center">
+            <div class="p-2 bg-yellow-100 rounded-lg">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Tempo Gasto (h)</p>
+              <p class="text-2xl font-semibold text-gray-900" id="tempoOFR">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--- Gráficos --->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Processo por Setor</h3>
+          <canvas id="ofrSetorChart"></canvas>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tempo de Processo por Setor</h3>
+          <canvas id="ofrTempoSetorChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">% Processo por Atividade</h3>
+          <canvas id="ofrAtividadeChart"></canvas>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tempo de Processo por Atividade</h3>
+          <canvas id="ofrTempoAtividadeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Atualiza os cards com dados reais
+  atualizarDashboardOFR();
+
+  // Renderiza os gráficos
+  renderizarOFRGraficos();
+
+  // ⚡ Primeiro carrega os dados do Firebase
+  carregarOFRs();
+}
+
+function renderListaOFR(content) {
+  content.innerHTML = `
+    <div class="max-w-7xl mx-auto mt-6">
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Lista de OFR</h1>
+        <button id="btnNovaOFR" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+          Nova OFR
+        </button>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nº O.F.R</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Solicitação</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Solicitante</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Setor</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Atividade</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Necessidade</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Finalização</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Retirada</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo de Processo</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaOFR" class="bg-white divide-y divide-gray-200">
+            <!-- Preenchido dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal para Nova OFR -->
+    <div id="modalOFR" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-screen overflow-y-auto">
+          <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4" id="modalOFRTitle">Nova OFR</h3>
+            <form id="formOFR">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nº O.F.R</label>
+                <input type="text" id="ofrNumero" class="w-full px-3 py-2 border rounded-md" required>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Data Solicitação</label>
+                <input type="date" id="ofrDataSolicitacao" class="w-full px-3 py-2 border rounded-md" required>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Nome Solicitante</label>
+                <input type="text" id="ofrSolicitante" class="w-full px-3 py-2 border rounded-md" required>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Setor</label>
+                <input type="text" id="ofrSetor" class="w-full px-3 py-2 border rounded-md" required>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Atividade</label>
+                <input type="text" id="ofrAtividade" class="w-full px-3 py-2 border rounded-md" required>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Descrição da Atividade</label>
+                <textarea id="ofrDescricao" class="w-full px-3 py-2 border rounded-md"></textarea>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Data Necessidade</label>
+                <input type="date" id="ofrDataNecessidade" class="w-full px-3 py-2 border rounded-md">
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Data Finalização</label>
+                <input type="date" id="ofrDataFinalizacao" class="w-full px-3 py-2 border rounded-md">
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium">Data Retirada</label>
+                <input type="date" id="ofrDataRetirada" class="w-full px-3 py-2 border rounded-md">
+              </div>
+              <div class="mb-6">
+                <label class="block text-sm font-medium">Tempo de Processo</label>
+                <input type="text" id="ofrTempoProcesso" class="w-full px-3 py-2 border rounded-md" placeholder="hh:mm:ss">
+              </div>
+              <div class="flex justify-end gap-3">
+                <button type="button" id="btnCancelarOFR" class="px-4 py-2 bg-gray-300 rounded-md">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+    // Adiciona eventos após renderizar a tela
+  setTimeout(() => {
+    $('#btnNovaOFR').addEventListener('click', abrirModalNovaOFR);
+    $('#btnCancelarOFR').addEventListener('click', fecharModalOFR);
+    $('#formOFR').addEventListener('submit', salvarOFR);
+
+    // ⚡ chama carregarOFRs para realmente buscar do Firebase
+    carregarOFRs();
+  }, 0);
+}
+
+function abrirModalNovaOFR() {
+  ofrEditando = null;
+  $('#modalOFRTitle').textContent = 'Nova OFR';
+  $('#formOFR').reset();
+  $('#modalOFR').classList.remove('hidden');
+}
+
+function fecharModalOFR() {
+  $('#modalOFR').classList.add('hidden');
+  ofrEditando = null;
+}
+
+async function salvarOFR(e) {
+  e.preventDefault();
+
+  const dados = {
+    numero: $('#ofrNumero').value,
+    dataSolicitacao: $('#ofrDataSolicitacao').value,
+    solicitante: $('#ofrSolicitante').value,
+    setor: $('#ofrSetor').value,
+    atividade: $('#ofrAtividade').value,
+    descricao: $('#ofrDescricao').value,
+    dataNecessidade: $('#ofrDataNecessidade').value,
+    dataFinalizacao: $('#ofrDataFinalizacao').value,
+    dataRetirada: $('#ofrDataRetirada').value,
+    tempoProcesso: $('#ofrTempoProcesso').value
+  };
+
+  try {
+    if (ofrEditando) {
+      await firebaseService.updateOFR(ofrEditando, dados);
+    } else {
+      await firebaseService.addOFR(dados);
+    }
+    fecharModalOFR();
+    carregarOFRs();
+  } catch (error) {
+    console.error('Erro ao salvar OFR:', error);
+    alert('Erro ao salvar OFR. Tente novamente.');
+  }
+}
+
+async function carregarOFRs() {
+  try {
+    ofrs = await firebaseService.getOFRs();
+    renderizarTabelaOFR();
+    atualizarDashboardOFR();
+
+    // Agora sim, gerar gráficos reais
+    renderizarOFRGraficos();
+  } catch (error) {
+    console.error('Erro ao carregar OFRs:', error);
+  }
+}
+
+
+
+function atualizarDashboardOFR() {
+  if (!ofrs || ofrs.length === 0) return;
+
+  $('#totalOFR').textContent = ofrs.length;
+
+  // Pega os filtros selecionados
+  const mesSelecionado = parseInt($('#filtroMes').value);
+  const anoSelecionado = parseInt($('#filtroAno').value);
+
+  const ofrsMes = ofrs.filter(o => {
+    if (!o.dataSolicitacao) return false;
+    const d = new Date(o.dataSolicitacao);
+    return d.getMonth() === mesSelecionado && d.getFullYear() === anoSelecionado;
+  });
+
+  $('#ofrMes').textContent = ofrsMes.length;
+
+  // Tempo gasto (converter hh:mm:ss para horas)
+  let totalMinutos = 0;
+  ofrsMes.forEach(o => {
+    if (!o.tempoProcesso) return;
+    if (typeof o.tempoProcesso === "string" && o.tempoProcesso.includes(":")) {
+      const [h, m, s] = o.tempoProcesso.split(':').map(Number);
+      totalMinutos += (h * 60) + m + (s ? s / 60 : 0);
+    } else if (!isNaN(o.tempoProcesso)) {
+      totalMinutos += Number(o.tempoProcesso); // já está em minutos
+    }
+  });
+
+  $('#tempoOFR').textContent = (totalMinutos / 60).toFixed(1);
+}
+
+
+
+function renderizarTabelaOFR() {
+  const tbody = $('#tabelaOFR');
+  if (!tbody) return;
+
+  tbody.innerHTML = ofrs.map(ofr => `
+    <tr>
+      <td class="px-6 py-4">${ofr.numero}</td>
+      <td class="px-6 py-4">${ofr.dataSolicitacao || '-'}</td>
+      <td class="px-6 py-4">${ofr.solicitante || '-'}</td>
+      <td class="px-6 py-4">${ofr.setor || '-'}</td>
+      <td class="px-6 py-4">${ofr.atividade || '-'}</td>
+      <td class="px-6 py-4">${ofr.descricao || '-'}</td>
+      <td class="px-6 py-4">${ofr.dataNecessidade || '-'}</td>
+      <td class="px-6 py-4">${ofr.dataFinalizacao || '-'}</td>
+      <td class="px-6 py-4">${ofr.dataRetirada || '-'}</td>
+      <td class="px-6 py-4">${ofr.tempoProcesso || '-'}</td>
+      <td class="px-6 py-4">
+        <button onclick="editarOFR('${ofr.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
+        <button onclick="excluirOFR('${ofr.id}')" class="text-red-600 hover:text-red-900">Excluir</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.editarOFR = async function(id) {
+  const ofr = ofrs.find(o => o.id === id);
+  if (ofr) {
+    ofrEditando = id;
+    $('#modalOFRTitle').textContent = 'Editar OFR';
+    $('#ofrNumero').value = ofr.numero;
+    $('#ofrDataSolicitacao').value = ofr.dataSolicitacao || '';
+    $('#ofrSolicitante').value = ofr.solicitante || '';
+    $('#ofrSetor').value = ofr.setor || '';
+    $('#ofrAtividade').value = ofr.atividade || '';
+    $('#ofrDescricao').value = ofr.descricao || '';
+    $('#ofrDataNecessidade').value = ofr.dataNecessidade || '';
+    $('#ofrDataFinalizacao').value = ofr.dataFinalizacao || '';
+    $('#ofrDataRetirada').value = ofr.dataRetirada || '';
+    $('#ofrTempoProcesso').value = ofr.tempoProcesso || '';
+    $('#modalOFR').classList.remove('hidden');
+  }
+};
+
+window.excluirOFR = async function(id) {
+  if (confirm('Tem certeza que deseja excluir esta OFR?')) {
+    try {
+      await firebaseService.deleteOFR(id);
+      carregarOFRs();
+    } catch (error) {
+      console.error('Erro ao excluir OFR:', error);
     }
   }
 };

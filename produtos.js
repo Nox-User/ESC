@@ -28,7 +28,7 @@ function animateValue({from=0, to=1, duration=800, onUpdate, easing=(t)=>t, onCo
 
 
 // ========= Gráfico ========
-function agruparProdutosPorMes(produtos, anos) {
+function agruparProdutosPorMes(produtos, anos, mesSelecionado) {
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
   const resultado = meses.map((m) => ({
@@ -41,27 +41,26 @@ function agruparProdutosPorMes(produtos, anos) {
   produtos.forEach(p => {
     const data = p["ENTRADA"];
     if (!data) return;
-
-    const partes = data.split("/"); // deve ser ["18","01","2024"]
-    if (partes.length < 2) return;
+    const partes = data.split("/");
+    if (partes.length < 3) return;
 
     const dia = parseInt(partes[0], 10);
     const mes = parseInt(partes[1], 10);
     const ano = parseInt(partes[2], 10);
 
-    if (isNaN(mes) || mes < 1 || mes > 12) return; // ignora datas inválidas
     if (anos && ano !== anos) return;
+    if (mesSelecionado && mes !== mesSelecionado) return;
 
     const indiceMes = mes - 1;
-
     resultado[indiceMes].produtos += 1;
-    if (p.STATUS && p.STATUS.toUpperCase() === "FINALIZADO") {
+    if ((p.STATUS || "").toUpperCase() === "FINALIZADO") {
       resultado[indiceMes].finalizados += 1;
     }
   });
 
   return resultado;
 }
+
 
 // Importar configuração do Firebase
 import { firebaseService } from './firebase-config.js';
@@ -85,7 +84,7 @@ export async function carregarDadosFirebase() {
     
     // inicia a aplicação só depois dos dados carregados
     App();
-    bindAnoFiltro();
+    bindFiltros();
   } catch (error) {
     console.error("Erro ao carregar dados do Firebase:", error);
     alert("Erro ao carregar dados do Firebase. Verifique a configuração.");
@@ -95,20 +94,37 @@ export async function carregarDadosFirebase() {
 // Inicializar carregamento dos dados
 
 
-function bindAnoFiltro(){
-  const select = document.getElementById("anos");
-  if (!select) return;
-  select.addEventListener("change", () => {
-    const ano = select.value ? parseInt(select.value, 10) : null;
-    graphData = agruparProdutosPorMes(produtosanuais, ano);
-    Graph(document.getElementById("graph"));  
-    AddComponent(document.getElementById("addComponent"), ano);
-    Clientes(document.getElementById("clientes"), ano);
-    Satisfaction(document.getElementById("satisfaction"), ano);
-  });
-}  
+function bindFiltros(){
+  const selectAno = document.getElementById("anos");
+  const selectMes = document.getElementById("mes");
+  if (!selectAno || !selectMes) return;
 
-function gerarStatusData(produtos, year) {
+  function atualizar(){
+    const ano = selectAno.value ? parseInt(selectAno.value, 10) : null;
+    const mes = selectMes.value ? parseInt(selectMes.value, 10) : null;
+
+    graphData = agruparProdutosPorMes(produtosanuais, ano, mes);
+    Graph(document.getElementById("graph"));  
+    AddComponent(document.getElementById("addComponent"), ano, mes);
+    Clientes(document.getElementById("clientes"), ano, mes);
+    Satisfaction(document.getElementById("satisfaction"), ano, mes);
+    statusData = gerarStatusData(produtosanuais, ano, mes);
+
+    // re-render cards
+    const cards = document.getElementById("cards");
+    if (cards) {
+      cards.innerHTML = "";
+      statusData.forEach(e => cards.appendChild(statusCard(e, mes)));
+    }
+  }
+
+  selectAno.addEventListener("change", atualizar);
+  selectMes.addEventListener("change", atualizar);
+}
+
+ 
+
+function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
   const statusBase = [
     { id: 1, name: 'NÃO INICIADO', position: "Quantidade de PPAP's não iniciados"},
     { id: 2, name: 'EM ANDAMENTO', position: "Quantidade de PPAP's em andamento"},
@@ -149,11 +165,11 @@ function gerarStatusData(produtos, year) {
     const mes = parseInt(partes[1], 10);
     const ano = parseInt(partes[2], 10);
 
-    if (year && ano !== year) return;
-    if (monthnumber && mes !== monthnumber) return;
+    if (anoSelecionado && ano !== anoSelecionado) return;
+    if (mesSelecionado && mes !== mesSelecionado) return;
 
-    const status = mapearStatus(p.STATUS || "");
-    if (status && contagem.hasOwnProperty(status)) {
+    const status = mapearStatus(p.STATUS || "").toUpperCase().trim();
+    if (contagem.hasOwnProperty(status)) {
       contagem[status] += 1;
     }
   });
@@ -441,24 +457,23 @@ function gerarStatusData(produtos, year) {
     
   }
 
-  function statusCard({id, name, position, transactions, rise}){
+  function statusCard({id, name, position, transactions, rise}, mesSelecionado){
     const wrap = document.createElement('div');
     wrap.className='w-full p-2 lg:w-1/3';
 
     let statusIcon = [];
-      
     switch(id){
-      case 1: // X
-          statusIcon = '<i class="fi fi-bs-cross animate-draw-x"></i>';
-          break;
-      case 2: // refresh
-          statusIcon = '<i class="fi fi-bs-refresh animate-refresh"></i>';
-          break;
-      case 3: // check
-          statusIcon = '<i class="fi fi-bs-check animate-draw-check"></i>';
-          break;
-      default:
-          statusIcon = '<i class="fa fa-question-circle"></i>';
+      case 1: statusIcon = '<i class="fi fi-bs-cross animate-draw-x"></i>'; break;
+      case 2: statusIcon = '<i class="fi fi-bs-refresh animate-refresh"></i>'; break;
+      case 3: statusIcon = '<i class="fi fi-bs-check animate-draw-check"></i>'; break;
+      default: statusIcon = '<i class="fa fa-question-circle"></i>';
+    }
+
+    // traduz número para nome do mês
+    const nomesMes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    let textoMes = "Todos";
+    if (mesSelecionado) {
+      textoMes = nomesMes[mesSelecionado-1];
     }
 
     wrap.innerHTML = `
@@ -477,7 +492,7 @@ function gerarStatusData(produtos, year) {
         <div class="flex flex-col items-center">
           ${Icon({path: rise? 'res-react-dash-bull':'res-react-dash-bear', className:'w-8 h-8', asHtml:true})}
           <div class="font-bold text-lg ${rise? 'text-green-500':'text-red-500'}" id="product"></div>
-          <div class="text-sm text-gray-400">No mês de: ${month}</div>
+          <div class="text-sm text-gray-400">No mês de: ${textoMes}</div>
         </div>
       </div>`;
       
@@ -488,12 +503,16 @@ function gerarStatusData(produtos, year) {
     return wrap;
   }
 
+
   // ======== Gráfico SVG responsivo (linhas) ========
 function Graph(mount){
 
   // guarda valor selecionado (se existir)
   const selectAntigo = document.getElementById("anos");
   const valorSelecionado = selectAntigo ? selectAntigo.value : "";
+  
+  const selectMesAntigo = document.getElementById("mes");
+  const valorMesSelecionado = selectMesAntigo ? selectMesAntigo.value : "";
 
   mount.innerHTML = `
     <div class="flex p-1 h-full flex-col shadow-lg">
@@ -519,10 +538,30 @@ function Graph(mount){
               <span class="text-sm text-black">META</span>
             </div>
           </div>
+        </div>´
+        <!-- Filtro de mês à direita -->
+        <div class="ml-1">
+          <label for="mes">Mês : </label>
+          <select id="mes" class="border p-2 rounded">
+            <option value="">Todos</option>
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
         </div>
+
         <!-- Filtro de ano à direita -->
         <div class="ml-2">
-          <label for="anos">Filtrar por </label>
+          <label for="anos">Ano : </label>
           <select id="anos" class="border p-2 rounded">
             <option value="">Todos</option>
             <option value="2023">2023</option>
@@ -546,6 +585,10 @@ function Graph(mount){
     selectNovo.value = valorSelecionado;
   }
 
+  const selectNovoMes = document.getElementById("mes");
+  if (valorMesSelecionado !== "") {
+    selectNovoMes.value = valorMesSelecionado;
+  }
   const svgWrap = $('#svgWrap', mount);
 
   function renderSvg(){
@@ -683,7 +726,7 @@ function Graph(mount){
   }
 
   renderSvg();
-  bindAnoFiltro();
+  bindFiltros();
   const ro = new ResizeObserver(renderSvg);
   ro.observe(mount);   // << mudar aqui
 }
@@ -842,8 +885,7 @@ function abrirModalDetalhes(dadosPorProcesso){
   });
 }
 
-function Satisfaction(mount, anoSelecionado){
-  // filtrar produtos do mês atual e ano selecionado
+function Satisfaction(mount, anoSelecionado, mesSelecionado){
   const produtosFiltrados = produtosanuais.filter(p => {
     const data = p["ENTRADA"];
     if (!data) return false;
@@ -854,12 +896,11 @@ function Satisfaction(mount, anoSelecionado){
     const ano = parseInt(partes[2], 10);
 
     if (anoSelecionado && ano !== anoSelecionado) return false;
-    if (mes !== monthnumber) return false;
+    if (mesSelecionado && mes !== mesSelecionado) return false;
 
     return true;
   });
 
-  // contar finalizados
   let total = produtosFiltrados.length;
   let finalizados = 0;
 
@@ -922,7 +963,7 @@ function Satisfaction(mount, anoSelecionado){
     const dados = agruparProdutosPorMes(produtosanuais, anoSelecionado);
     const totalProdutos = dados.reduce((soma, d) => soma + d.produtos, 0);
 
-    const totalFuncionarios = 16;
+    const totalFuncionarios = 22;
     const ncPermitido = Math.round(totalProdutos * 0.005); // 0,5%
     const ncReal = 2;
 
@@ -931,7 +972,7 @@ function Satisfaction(mount, anoSelecionado){
         <div class="text-black font-bold text-lg mb-4 border-b pb-2 ">
           SUMÁRIO DE AMOSTRAS (KPI) (${anoSelecionado || 'Todos'})
         </div>
-        <div class="flex-grow overflow-auto shadow-lg">
+        <div class="flex-grow shadow-lg">
           <table class="w-full text-left border-collapse rounded-lg overflow-hidden shadow">
             <thead>
               <tr class="bg-gray-200 text-gray-700">
@@ -964,8 +1005,7 @@ function Satisfaction(mount, anoSelecionado){
 
   // ======== Clientes ========
   
-function Clientes(mount, anoSelecionado){
-  // filtrar produtos do mês atual e ano (ou todos os anos se vazio)
+function Clientes(mount, anoSelecionado, mesSelecionado){
   const produtosFiltrados = produtosanuais.filter(p => {
     const data = p["ENTRADA"];
     if (!data) return false;
@@ -976,12 +1016,11 @@ function Clientes(mount, anoSelecionado){
     const ano = parseInt(partes[2], 10);
 
     if (anoSelecionado && ano !== anoSelecionado) return false;
-    if (mes !== monthnumber) return false;
+    if (mesSelecionado && mes !== mesSelecionado) return false;
 
     return true;
   });
 
-  // agrupar por cliente
   const clientesMap = {};
   produtosFiltrados.forEach(p => {
     const cliente = p["CLIENTE"] || "Desconhecido";
@@ -997,13 +1036,12 @@ function Clientes(mount, anoSelecionado){
       rise: true
     }));
 
-  // render
   mount.innerHTML = `
     <div class="flex justify-between items-center">
       <div class="text-black font-bold">DADOS GERAIS:</div>
       <img src="https://assets.codepen.io/3685267/res-react-dash-options.svg" class="w-2 h-2"/>
     </div>
-    <div class="mt-3">Total de Amostras por Cliente em: ${month}</div>
+    <div class="mt-3">Total de Amostras por Cliente</div>
     <div id="rows"></div>
     <div class="flex-grow"></div>
     <div class="flex justify-center"><div>Ver todos</div></div>
@@ -1024,6 +1062,7 @@ function Clientes(mount, anoSelecionado){
     rows.appendChild(row);
   });
 }
+
 
 function ProdutosPage(mount){
   let produtos = [...produtosanuais]; // cópia local
@@ -1061,10 +1100,11 @@ function ProdutosPage(mount){
 
 
       <!-- Tabela -->
-      <div class="tabela-overview overflow-auto border rounded-lg">
+      <div class="tabela-overview border rounded-lg">
+        <!-- Cabeçalho fixo -->
         <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-200 text-gray-700">
+          <thead class="bg-gray-200 text-gray-700 sticky top-0 z-10">
+            <tr>
               <th class="p-3">Part Number</th>
               <th class="p-3">Cliente</th>
               <th class="p-3">Entrada</th>
@@ -1073,8 +1113,14 @@ function ProdutosPage(mount){
               <th class="p-3">Ações</th>
             </tr>
           </thead>
-          <tbody id="tabelaProdutos"></tbody>
         </table>
+
+        <!-- Corpo com scroll -->
+        <div class="max-h-[70vh] overflow-y-auto">
+          <table class="w-full text-left border-collapse">
+            <tbody id="tabelaProdutos"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;
@@ -1508,69 +1554,125 @@ function ProdutosPage(mount){
 
   }
 
-    function visualizarProduto(produto) {
-      let modal = document.getElementById("modal-visualizar-produto");
-      if (!modal) {
-        modal = document.createElement("div");
-        modal.id = "modal-visualizar-produto";
-        modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-        document.body.appendChild(modal);
-      }
+  
+function visualizarProduto(produto) {
+  let modal = document.getElementById("modal-visualizar-produto");
+  
 
-      const processos = produto.processos || [];
-      const tempos = produto.tempos || {};
-      const componentes = produto.componentes || [];
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modal-visualizar-produto";
+    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+    document.body.appendChild(modal);
+  }
 
-      const listaProcessos = processos.length
-        ? `<ul class="list-disc pl-5">
-            ${processos.map(p => {
-              const label = PROCESSOS.find(x => x.id === p)?.label || p;
-              const t = tempos[p] || {};
-              return `<li>
-                <strong>${label}:</strong><br>
-                Comercial: ${t.comercial ?? 0} h |
-                Engenharia: ${t.engenharia ?? 0} h |
-                Homologado: ${t.homologado ?? 0} h
-              </li>`;
-            }).join("")}
-          </ul>`
-        : "Nenhum processo cadastrado";
-
-      const listaComponentes = componentes.length
-        ? `<ul class="list-disc pl-5">
-            ${componentes.map(c => `
-              <li>
-                <strong>${c.partNumber || 'N/A'}</strong> (Rev: ${c.revisao || 'N/A'}) - 
-                Cliente: ${c.cliente || 'N/A'} - 
-                Status: ${c.status || 'N/A'}
-              </li>
-            `).join("")}
-          </ul>`
-        : "Nenhum componente cadastrado";;
-
-      modal.innerHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[80vh] overflow-y-auto">
-          <h3 class="text-lg font-bold mb-4">Detalhes do Produto</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div><strong>Part Number:</strong> ${produto["PART NUMBER"] || ""}</div>
-            <div><strong>Revisão:</strong> ${produto["REVISAO"] || ""}</div>
-            <div><strong>Cliente:</strong> ${produto["CLIENTE"] || ""}</div>
-            <div><strong>Complexidade:</strong> ${produto["COMPLEXIDADE"] || ""}</div>
-            <div><strong>Tipo:</strong> ${produto["TIPO"] || ""}</div>
-            <div><strong>Entrada:</strong> ${produto["ENTRADA"] || ""}</div>
-            <div><strong>Ship Date:</strong> ${produto["SHIP DATE"] || ""}</div>
-            <div><strong>Status:</strong> ${produto["STATUS"] || ""}</div>
-            <div class="col-span-2"><strong>Processos & Tempos:</strong><br>${listaProcessos}</div>
-            ${produto.TIPO === 'CONJUNTO' ? `<div class="col-span-2"><strong>Componentes:</strong><br>${listaComponentes}</div>` : ''}
+  // lista de processos com tempos
+  let listaProcessos = "";
+  if (produto.tempos) {
+    Object.keys(produto.tempos).forEach(proc => {
+      const t = produto.tempos[proc] || {};
+      listaProcessos += `
+        <div class="mb-2">
+          <strong>${proc}</strong>
+          <div class="ml-4 text-sm text-gray-700">
+            Comercial: ${t.comercial || "-"}<br>
+            Engenharia: ${t.engenharia || "-"}<br>
+            Homologado: ${t.homologado || "-"}
           </div>
-          <div class="flex justify-end mt-4">
-            <button id="fecharVisualizar" class="bg-red-500 text-white px-4 py-2 rounded">Fechar</button>
+        </div>`;
+    });
+  } else {
+    listaProcessos = "<div>Nenhum processo cadastrado</div>";
+  }
+
+  let processosTexto = "Nenhum processo";
+  if (produto.tempos && Object.keys(produto.tempos).length > 0) {
+    processosTexto = Object.keys(produto.tempos).map(proc => {
+      const t = produto.tempos[proc] || {};
+      return ` - ${proc}
+        • Comercial: ${t.comercial || "-"}
+        • Engenharia: ${t.engenharia || "-"}
+        • Homologado: ${t.homologado || "-"}`;
+    }).join("%0D%0A%0D%0A");
+  }
+
+
+  let corpoTexto = 
+    `Bom dia a Todos,%0D%0A%0D%0A` +
+    `Segue abaixo as informações do produto:%0D%0A%0D%0A` +
+    `Part Number: ${produto["PART NUMBER"] || ""}%0D%0A` +
+    `Revisão: ${produto["REVISAO"] || ""}%0D%0A` +
+    `Cliente: ${produto["CLIENTE"] || ""}%0D%0A` +
+    `Complexidade: ${produto["COMPLEXIDADE"] || ""}%0D%0A` +
+    `Tipo: ${produto["TIPO"] || ""}%0D%0A` +
+    `Entrada: ${produto["ENTRADA"] || ""}%0D%0A` +
+    `Ship Date: ${produto["SHIP DATE"] || ""}%0D%0A` +
+    `Status: ${produto["STATUS"] || ""}%0D%0A%0D%0A` +
+    `Processos & Tempos:%0D%0A${processosTexto}%0D%0A%0D%0A` +
+    (produto.TIPO === "CONJUNTO" 
+      ? `Componentes:%0D%0A${(produto.componentes || []).map(c => ` - ${c}`).join("%0D%0A")}` 
+      : "");
+
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">Visualizar Produto</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <input type="text" readonly value="${produto["PART NUMBER"] || ""}" placeholder="Part Number" class="border px-3 py-2 rounded bg-gray-100"/>
+        <input type="text" readonly value="${produto["REVISAO"] || ""}" placeholder="Revisão" class="border px-3 py-2 rounded bg-gray-100"/>
+        
+        <input type="text" readonly value="${produto["CLIENTE"] || ""}" placeholder="Cliente" class="border px-3 py-2 rounded bg-gray-100"/>
+        <input type="text" readonly value="${produto["COMPLEXIDADE"] || ""}" placeholder="Complexidade" class="border px-3 py-2 rounded bg-gray-100"/>
+        
+        <input type="text" readonly value="${produto["ENTRADA"] || ""}" placeholder="Data Entrada" class="border px-3 py-2 rounded bg-gray-100"/>
+        <input type="text" readonly value="${produto["SHIP DATE"] || ""}" placeholder="Ship Date" class="border px-3 py-2 rounded bg-gray-100"/>
+        
+        <input type="text" readonly value="${produto["TIPO"] || ""}" placeholder="Tipo" class="border px-3 py-2 rounded bg-gray-100"/>
+        <input type="text" readonly value="${produto["STATUS"] || ""}" placeholder="Status" class="border px-3 py-2 rounded bg-gray-100"/>
+      </div>
+
+      <!-- Processos e tempos -->
+      <div class="col-span-2 mt-4">
+        <label class="font-bold">Processos:</label>
+        <div class="mt-2 space-y-2">
+          ${(produto.processos || []).map(proc => {
+            const tempos = produto.tempos?.[proc] || {};
+            return `
+              <div class="border rounded p-3">
+                <div class="font-bold mb-2">${proc}</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="text" readonly value="${tempos.comercial ?? ""}" placeholder="Comercial" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
+                  <input type="text" readonly value="${tempos.engenharia ?? ""}" placeholder="Engenharia" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
+                  <input type="text" readonly value="${tempos.homologado ?? ""}" placeholder="Homologado" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+
+      <!-- Componentes -->
+      ${produto.TIPO === "CONJUNTO" ? `
+        <div class="col-span-2 mt-4">
+          <label class="font-bold">Componentes do Conjunto:</label>
+          <div class="mt-2 space-y-2">
+            ${(produto.componentes || []).map(c => `
+              <div class="border rounded p-2 bg-gray-100">${c}</div>
+            `).join("")}
           </div>
         </div>
-      `;
+      ` : ""}
 
-      modal.querySelector("#fecharVisualizar").addEventListener("click", () => modal.remove());
-    }
+      <div class="flex justify-end mt-6">
+        <button id="fecharVisualizar" class="bg-gray-500 text-white px-4 py-2 rounded">Fechar</button>
+      </div>
+    </div>
+  `;
+
+  modal.querySelector("#fecharVisualizar")
+    .addEventListener("click", ()=> modal.remove());
+}
+
 
 
 
@@ -1612,10 +1714,29 @@ function GraficosPage(mount) {
       <div class="flex items-center mb-6 gap-4">
         <select id="filtroAnoGraficos" class="border px-3 py-2 rounded">
           <option value="">Todos os Anos</option>
+          <option value="2027">2027</option>
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
           <option value="2024">2024</option>
           <option value="2023">2023</option>
           <option value="2022">2022</option>
         </select>
+        <select id="filtroMesGraficos" class="border px-3 py-2 rounded">
+          <option value="">Todos os Meses</option>
+          <option value="1">Janeiro</option>
+          <option value="2">Fevereiro</option>
+          <option value="3">Março</option>
+          <option value="4">Abril</option>
+          <option value="5">Maio</option>
+          <option value="6">Junho</option>
+          <option value="7">Julho</option>
+          <option value="8">Agosto</option>
+          <option value="9">Setembro</option>
+          <option value="10">Outubro</option>
+          <option value="11">Novembro</option>
+          <option value="12">Dezembro</option>
+        </select>
+
         <select id="filtroClienteGraficos" class="border px-3 py-2 rounded">
           <option value="">Todos os Clientes</option>
         </select>
@@ -1668,6 +1789,7 @@ function GraficosPage(mount) {
   // Eventos dos filtros
   document.getElementById('filtroAnoGraficos').addEventListener('change', atualizarGraficos);
   document.getElementById('filtroClienteGraficos').addEventListener('change', atualizarGraficos);
+  document.getElementById('filtroMesGraficos').addEventListener('change', atualizarGraficos);
 
   function inicializarGraficos() {
     atualizarGraficos();
@@ -1676,6 +1798,7 @@ function GraficosPage(mount) {
   function atualizarGraficos() {
     const anoSelecionado = document.getElementById('filtroAnoGraficos').value;
     const clienteSelecionado = document.getElementById('filtroClienteGraficos').value;
+    const mesSelecionado = document.getElementById('filtroMesGraficos').value;
 
     // Filtrar produtos
     const produtosFiltrados = produtosanuais.filter(p => {
@@ -1689,7 +1812,18 @@ function GraficosPage(mount) {
           }
         }
       }
-      
+
+      if (mesSelecionado) {
+        const data = p["ENTRADA"];
+        if (data) {
+          const partes = data.split("/");
+          if (partes.length >= 3) {
+            const mes = parseInt(partes[1], 10);
+            if (mes !== parseInt(mesSelecionado, 10)) return false;
+          }
+        }
+      }
+
       if (clienteSelecionado && p.CLIENTE !== clienteSelecionado) return false;
       
       return true;

@@ -617,6 +617,23 @@ function formatarPilares(pilares) {
   return pilares.join(', ');
 }
 
+function parseDataCriacao(dataStr) {
+  if (!dataStr) return null;
+
+  // Caso já esteja no formato ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+    return new Date(dataStr);
+  }
+
+  // Caso esteja no formato DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
+    const [dia, mes, ano] = dataStr.split('/');
+    return new Date(`${ano}-${mes}-${dia}`);
+  }
+
+  return new Date(dataStr); // fallback
+}
+
 let statusChartInstance = null;
 let monthChartInstance = null;
 let pilaresChartInstance = null;
@@ -661,26 +678,33 @@ function renderizarGraficos() {
   // Gráfico por Mês com linha de valor fixo
   const monthCtx = $('#monthChart').getContext('2d');
   const monthData = agruparMelhoriasPorMes();
-  
+
   monthChartInstance = new Chart(monthCtx, {
     type: 'bar',
     data: {
       labels: monthData.map(m => m.mes),
-      datasets: [{
-        label: 'Melhorias',
-        data: monthData.map(m => m.quantidade),
-        backgroundColor: '#3B82F6'
-      }, {
-        label: 'Meta',
-        data: new Array(12).fill(16), // Valor fixo de 16 melhorias por mês
-        type: 'line',
-        borderColor: '#EF4444',
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        pointBackgroundColor: '#EF4444',
-        pointBorderColor: '#EF4444',
-        pointRadius: 4
-      }]
+      datasets: [
+        {
+          label: 'Melhorias Gerais',
+          data: monthData.map(m => m.gerais),
+          backgroundColor: '#3B82F6' // azul
+        },
+        {
+          label: 'Melhorias da Engenharia',
+          data: monthData.map(m => m.engenharia),
+          backgroundColor: '#10B981' // verde
+        },
+        {
+          label: 'Meta',
+          data: new Array(12).fill(16),
+          type: 'line',
+          borderColor: '#EF4444',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 0
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -696,7 +720,7 @@ function renderizarGraficos() {
   // Gráfico de Pilares
   const pilaresCtx = $('#pilaresChart').getContext('2d');
   const pilaresData = agruparMelhoriasPorPilar();
-  
+
   pilaresChartInstance = new Chart(pilaresCtx, {
     type: 'bar',
     data: {
@@ -704,7 +728,7 @@ function renderizarGraficos() {
       datasets: [{
         label: 'Melhorias',
         data: pilaresData.map(p => p.quantidade),
-        backgroundColor: ['#8B5CF6', '#06B6D4', '#84CC16', '#F59E0B']
+        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
       }]
     },
     options: {
@@ -717,6 +741,7 @@ function renderizarGraficos() {
       }
     }
   });
+
 
   // Gráfico de Processos
   const processosCtx = $('#processosChart').getContext('2d');
@@ -822,20 +847,31 @@ function renderizarGraficos() {
 
 function agruparMelhoriasPorMes() {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const resultado = meses.map(mes => ({ mes, quantidade: 0 }));
+
+  const resultado = meses.map(mes => ({
+    mes,
+    gerais: 0,
+    engenharia: 0
+  }));
 
   melhorias.forEach(melhoria => {
-    if (melhoria.dataCriacao) {
-      const data = new Date(melhoria.dataCriacao);
+    const data = parseDataCriacao(melhoria.dataCriacao);
+    if (data instanceof Date && !isNaN(data)) {
       const mesIndex = data.getMonth();
       if (mesIndex >= 0 && mesIndex < 12) {
-        resultado[mesIndex].quantidade++;
+        if (melhoria.titulo && melhoria.titulo.toLowerCase().includes("engenharia")) {
+          resultado[mesIndex].engenharia++;
+        } else {
+          resultado[mesIndex].gerais++;
+        }
       }
     }
   });
 
   return resultado;
 }
+
+
 
 function agruparMelhoriasPorPilar() {
   const pilares = ['Segurança', 'Custo', 'Qualidade', 'Produtividade'];
