@@ -229,7 +229,7 @@ function renderMainContent() {
     <div class="max-w-7xl mx-auto p-2 mt-6">
       <!-- Dashboard Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-blue-100 rounded-lg">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ function renderMainContent() {
           </div>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-green-100 rounded-lg">
               <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,7 +257,7 @@ function renderMainContent() {
           </div>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-yellow-100 rounded-lg">
               <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,7 +271,7 @@ function renderMainContent() {
           </div>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-red-100 rounded-lg">
               <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,12 +288,12 @@ function renderMainContent() {
 
       <!-- Gráficos -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Status dos Projetos</h3>
           <canvas id="statusChart" width="400" height="200"></canvas>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Projetos por Mês</h3>
           <canvas id="monthChart" width="400" height="200"></canvas>
         </div>
@@ -301,12 +301,12 @@ function renderMainContent() {
 
       <!-- Novos Gráficos -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Complexidade dos Projetos</h3>
           <canvas id="complexidadeChart" width="400" height="200"></canvas>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Projetos por Pilar</h3>
           <canvas id="pilaresChart" width="400" height="200"></canvas>
         </div>
@@ -476,14 +476,14 @@ function renderRelatorios(content) {
     <div class="max-w-7xl mx-auto mt-6">
       <h1 class="text-3xl font-bold text-gray-900 mb-6">Relatórios</h1>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Relatório de Status</h3>
           <p class="text-gray-600 mb-4">Gere um relatório detalhado sobre o status dos projetos.</p>
           <button onclick="gerarRelatorioPDF()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
             Gerar PDF
           </button>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Relatório de Complexidade</h3>
           <p class="text-gray-600 mb-4">Analise a distribuição de complexidade dos projetos.</p>
           <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
@@ -499,7 +499,7 @@ function renderConfiguracoes(content) {
   content.innerHTML = `
     <div class="max-w-7xl mx-auto mt-6">
       <h1 class="text-3xl font-bold text-gray-900 mb-6">Configurações</h1>
-      <div class="bg-white p-6 rounded-lg shadow-sm">
+      <div class="rounded-lg bg-card-content p-4 shadow-lg">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Configurações do Sistema</h3>
         <p class="text-gray-600">Configurações em desenvolvimento...</p>
       </div>
@@ -874,48 +874,91 @@ let ofrAtividadeChartInstance = null;
 let ofrTempoAtividadeChartInstance = null;
 
 // Função para renderizar os gráficos da aba OFR
-function renderizarOFRGraficos() {
-  // Dados fictícios para teste – depois você pode substituir pelos dados vindos do Firebase
-  const setores = ['Manutenção', 'Solda', 'Usinagem', 'Dobra'];
-  const processosSetor = [2, 17, 2, 4];
+function renderizarOFRGraficos(ofrsFiltrados) {
+  if (!ofrsFiltrados) ofrsFiltrados = ofrs;
+  console.log('OFRs filtrados:', ofrsFiltrados);
 
-  const tempoFabricacaoSetor = [40, 260, 0, 0]; // minutos
-  const tempoRetrabalhoSetor = [15, 1025, 90, 265]; // minutos
+  const setores = [...new Set(ofrsFiltrados.map(o => o.setor || 'Outro'))];
+  const processosSetor = setores.map(setor =>
+    ofrsFiltrados.filter(o => o.setor === setor).length
+  );
+
+  const tempoSetor = setores.map(setor =>
+    ofrsFiltrados
+      .filter(o => o.setor === setor)
+      .reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0)
+  );
 
   const atividades = ['Fabricação', 'Reparo/Retrabalho'];
-  const percAtividades = [20, 80];
+  const totalTempo = ofrsFiltrados.reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0);
 
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr'];
-  const tempoFabricacaoMes = [0, 120, 180, 0]; // minutos
-  const tempoRetrabalhoMes = [430, 330, 590, 45]; // minutos
+  const tempoFabricacao = ofrsFiltrados
+    .filter(o => (o.atividade || '').toLowerCase().includes('fabrica'))
+    .reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0);
 
-  // 🔄 Destroi instâncias anteriores para evitar duplicar
+  const tempoReparo = ofrsFiltrados
+    .filter(o => (o.atividade || '').toLowerCase().includes('reparo') || (o.atividade || '').toLowerCase().includes('retrabalho'))
+    .reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0);
+
+  const percAtividades = [
+    totalTempo ? (tempoFabricacao / totalTempo) * 100 : 0,
+    totalTempo ? (tempoReparo / totalTempo) * 100 : 0
+  ];
+
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const tempoFabricacaoMes = meses.map((_, index) =>
+    ofrsFiltrados
+      .filter(o => new Date(o.dataSolicitacao).getMonth() === index && (o.atividade || '').toLowerCase().includes('fabrica'))
+      .reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0)
+  );
+
+  const tempoReparoMes = meses.map((_, index) =>
+    ofrsFiltrados
+      .filter(o => new Date(o.dataSolicitacao).getMonth() === index && ((o.atividade || '').toLowerCase().includes('reparo') || (o.atividade || '').toLowerCase().includes('retrabalho')))
+      .reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0)
+  );
+
   if (ofrSetorChartInstance) ofrSetorChartInstance.destroy();
   if (ofrTempoSetorChartInstance) ofrTempoSetorChartInstance.destroy();
   if (ofrAtividadeChartInstance) ofrAtividadeChartInstance.destroy();
   if (ofrTempoAtividadeChartInstance) ofrTempoAtividadeChartInstance.destroy();
 
-  // 📊 Processo por Setor
+  const cores = [
+    '#3B82F6', '#F97316', '#10B981', '#8B5CF6',
+    '#06B6D4', '#84CC16', '#F59E0B', '#EF4444'
+  ];
+
   const ctxSetor = document.getElementById('ofrSetorChart').getContext('2d');
   ofrSetorChartInstance = new Chart(ctxSetor, {
     type: 'bar',
     data: {
       labels: setores,
       datasets: [{
-        label: 'Processos',
         data: processosSetor,
-        backgroundColor: '#3B82F6'
+        backgroundColor: setores.map((_, i) => cores[i % cores.length])
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.raw} processos`
+          }
+        }
+      },
       scales: {
-        y: { beginAtZero: true }
+        x: { beginAtZero: true },
+        y: {
+          ticks: { color: '#333', font: { weight: 'bold' } }
+        }
       }
     }
   });
 
-  // 📊 Tempo de Processo por Setor
   const ctxTempoSetor = document.getElementById('ofrTempoSetorChart').getContext('2d');
   ofrTempoSetorChartInstance = new Chart(ctxTempoSetor, {
     type: 'bar',
@@ -923,26 +966,30 @@ function renderizarOFRGraficos() {
       labels: setores,
       datasets: [
         {
-          label: 'Fabricação',
-          data: tempoFabricacaoSetor,
+          label: 'Tempo (h)',
+          data: tempoSetor.map(v => (v / 60).toFixed(1)),
           backgroundColor: '#3B82F6'
-        },
-        {
-          label: 'Reparo/Retrabalho',
-          data: tempoRetrabalhoSetor,
-          backgroundColor: '#F97316'
         }
       ]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} h`
+          }
+        }
+      },
       scales: {
-        y: { beginAtZero: true }
+        x: { beginAtZero: true, title: { display: true, text: 'Horas' } },
+        y: { ticks: { color: '#333', font: { weight: 'bold' } } }
       }
     }
   });
 
-  // 📊 % Processo por Atividade
   const ctxAtividade = document.getElementById('ofrAtividadeChart').getContext('2d');
   ofrAtividadeChartInstance = new Chart(ctxAtividade, {
     type: 'pie',
@@ -953,44 +1000,28 @@ function renderizarOFRGraficos() {
         backgroundColor: ['#3B82F6', '#F97316']
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
   });
 
-  // 📊 Tempo de Processo por Atividade (Mensal)
   const ctxTempoAtividade = document.getElementById('ofrTempoAtividadeChart').getContext('2d');
   ofrTempoAtividadeChartInstance = new Chart(ctxTempoAtividade, {
     type: 'bar',
     data: {
       labels: meses,
       datasets: [
-        {
-          label: 'Fabricação',
-          data: tempoFabricacaoMes,
-          backgroundColor: '#3B82F6'
-        },
-        {
-          label: 'Reparo/Retrabalho',
-          data: tempoRetrabalhoMes,
-          backgroundColor: '#F97316'
-        }
+        { label: 'Fabricação', data: tempoFabricacaoMes, backgroundColor: '#3B82F6' },
+        { label: 'Reparo/Retrabalho', data: tempoReparoMes, backgroundColor: '#F97316' }
       ]
     },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
   });
-      const filtroMes = $('#filtroMes');
-    const filtroAno = $('#filtroAno');
-    if (filtroMes && filtroAno) {
-        filtroMes.addEventListener('change', atualizarDashboardOFR);
-        filtroAno.addEventListener('change', atualizarDashboardOFR);
-    }
+
+  const filtroMes = $('#filtroMes');
+  const filtroAno = $('#filtroAno');
+  if (filtroMes && filtroAno) {
+    filtroMes.addEventListener('change', atualizarDashboardOFR);
+    filtroAno.addEventListener('change', atualizarDashboardOFR);
+  }
 }
 
 
@@ -1021,7 +1052,7 @@ function renderOFRGraficos(content) {
 
       <!-- Cards resumo -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-blue-100 rounded-lg">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1036,7 +1067,7 @@ function renderOFRGraficos(content) {
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-green-100 rounded-lg">
               <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1051,7 +1082,7 @@ function renderOFRGraficos(content) {
           </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <div class="flex items-center">
             <div class="p-2 bg-yellow-100 rounded-lg">
               <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1069,24 +1100,24 @@ function renderOFRGraficos(content) {
 
       <!--- Gráficos --->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Processo por Setor</h3>
           <canvas id="ofrSetorChart"></canvas>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Tempo de Processo por Setor</h3>
           <canvas id="ofrTempoSetorChart"></canvas>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">% Processo por Atividade</h3>
           <canvas id="ofrAtividadeChart"></canvas>
         </div>
         
-        <div class="bg-white p-6 rounded-lg shadow-sm">
+        <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Tempo de Processo por Atividade</h3>
           <canvas id="ofrTempoAtividadeChart"></canvas>
         </div>
@@ -1120,13 +1151,10 @@ function renderListaOFR(content) {
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nº O.F.R</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Solicitação</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Solicitante</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Setor</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Atividade</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Necessidade</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Finalização</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Retirada</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo de Processo</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
@@ -1210,8 +1238,28 @@ function abrirModalNovaOFR() {
   ofrEditando = null;
   $('#modalOFRTitle').textContent = 'Nova OFR';
   $('#formOFR').reset();
+
+  const anoAtual = new Date().getFullYear();
+
+  if (ofrs && ofrs.length > 0) {
+    // 🔎 Filtra só as OFRs do ano atual
+    const numerosAnoAtual = ofrs
+      .filter(o => o.numero && o.numero.endsWith(`|${anoAtual}`))
+      .map(o => parseInt(o.numero.split('|')[0], 10))
+      .filter(n => !isNaN(n));
+
+    const max = numerosAnoAtual.length > 0 ? Math.max(...numerosAnoAtual) : 0;
+    const proximo = (max + 1).toString().padStart(4, "0");
+
+    $('#ofrNumero').value = `${proximo}|${anoAtual}`;
+  } else {
+    $('#ofrNumero').value = `0001|${anoAtual}`;
+  }
+
   $('#modalOFR').classList.remove('hidden');
 }
+
+
 
 function fecharModalOFR() {
   $('#modalOFR').classList.add('hidden');
@@ -1261,14 +1309,43 @@ async function carregarOFRs() {
   }
 }
 
+function getOFRsFiltrados() {
+  const mesSelecionado = parseInt($('#filtroMes').value);
+  const anoSelecionado = parseInt($('#filtroAno').value);
 
+  return ofrs.filter(o => {
+    if (!o.dataSolicitacao) return false;
+    const d = new Date(o.dataSolicitacao);
+    return d.getMonth() === mesSelecionado && d.getFullYear() === anoSelecionado;
+  });
+}
+
+function converterTempoParaMinutos(tempo) {
+  if (!tempo) return 0;
+  if (typeof tempo === "string" && tempo.includes(":")) {
+    const [h, m, s] = tempo.split(':').map(Number);
+    return (h * 60) + m + (s ? s / 60 : 0);
+  }
+  if (!isNaN(tempo)) return Number(tempo);
+  return 0;
+}
+
+function formatarMinutosParaHoras(minutos) {
+  const h = Math.floor(minutos / 60);
+  const m = Math.floor(minutos % 60);
+  const s = Math.round((minutos - Math.floor(minutos)) * 60);
+  let resultado = "";
+  if (h > 0) resultado += `${h}h`;
+  if (m > 0) resultado += `${m}min`;
+  if (s > 0 && h === 0) resultado += `${s}s`;
+  if (!resultado) resultado = "0h";
+  return resultado;
+}
 
 function atualizarDashboardOFR() {
-  if (!ofrs || ofrs.length === 0) return;
+  const total = ofrs.length;
+  $('#totalOFR').textContent = total;
 
-  $('#totalOFR').textContent = ofrs.length;
-
-  // Pega os filtros selecionados
   const mesSelecionado = parseInt($('#filtroMes').value);
   const anoSelecionado = parseInt($('#filtroAno').value);
 
@@ -1280,22 +1357,13 @@ function atualizarDashboardOFR() {
 
   $('#ofrMes').textContent = ofrsMes.length;
 
-  // Tempo gasto (converter hh:mm:ss para horas)
-  let totalMinutos = 0;
-  ofrsMes.forEach(o => {
-    if (!o.tempoProcesso) return;
-    if (typeof o.tempoProcesso === "string" && o.tempoProcesso.includes(":")) {
-      const [h, m, s] = o.tempoProcesso.split(':').map(Number);
-      totalMinutos += (h * 60) + m + (s ? s / 60 : 0);
-    } else if (!isNaN(o.tempoProcesso)) {
-      totalMinutos += Number(o.tempoProcesso); // já está em minutos
-    }
-  });
+  const tempoTotalMinutos = ofrsMes.reduce((sum, o) => sum + converterTempoParaMinutos(o.tempoProcesso), 0);
+  $('#tempoOFR').textContent = formatarMinutosParaHoras(tempoTotalMinutos);
 
-  $('#tempoOFR').textContent = (totalMinutos / 60).toFixed(1);
+
+  // 🔄 Atualiza também os gráficos filtrados
+  renderizarOFRGraficos(ofrsMes);
 }
-
-
 
 function renderizarTabelaOFR() {
   const tbody = $('#tabelaOFR');
@@ -1305,13 +1373,10 @@ function renderizarTabelaOFR() {
     <tr>
       <td class="px-6 py-4">${ofr.numero}</td>
       <td class="px-6 py-4">${ofr.dataSolicitacao || '-'}</td>
-      <td class="px-6 py-4">${ofr.solicitante || '-'}</td>
       <td class="px-6 py-4">${ofr.setor || '-'}</td>
       <td class="px-6 py-4">${ofr.atividade || '-'}</td>
       <td class="px-6 py-4">${ofr.descricao || '-'}</td>
       <td class="px-6 py-4">${ofr.dataNecessidade || '-'}</td>
-      <td class="px-6 py-4">${ofr.dataFinalizacao || '-'}</td>
-      <td class="px-6 py-4">${ofr.dataRetirada || '-'}</td>
       <td class="px-6 py-4">${ofr.tempoProcesso || '-'}</td>
       <td class="px-6 py-4">
         <button onclick="editarOFR('${ofr.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
@@ -1402,5 +1467,59 @@ document.addEventListener('DOMContentLoaded', () => {
   renderApp();       // monta a estrutura uma única vez
   carregarProjetos(); // depois só atualiza dados
 });
+
+// ======= Máscara/formatador para #ofrTempoProcesso (delegation, funciona para elemento criado depois) =======
+
+// Formata enquanto digita: "123456" -> "12:34:56", "1234" -> "12:34", etc.
+function formatarTempoAoDigitar(valor) {
+  const digits = (valor || '').replace(/\D/g, '').slice(0,6);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return digits.slice(0,2) + ':' + digits.slice(2);
+  return digits.slice(0,2) + ':' + digits.slice(2,4) + ':' + digits.slice(4,6);
+}
+
+// Formata para exibir completo (ao perder o foco ou quando carregar um valor existente)
+// Preenche com zeros à direita se necessário: "1:2" -> "01:02:00"
+function formatarTempoCompleto(valor) {
+  if (!valor) return '';
+  // Se já tem ":", normaliza e completa
+  if (typeof valor === 'string' && valor.includes(':')) {
+    const parts = valor.split(':').map(p => p.replace(/\D/g,''));
+    while (parts.length < 3) parts.push('00');
+    const [h,m,s] = parts.map(p => p.padStart(2,'0').slice(0,2));
+    return `${h}:${m}:${s}`;
+  }
+  // Se é apenas dígitos (ex: "004000" ou "1234")
+  const digits = String(valor).replace(/\D/g,'').slice(0,6).padEnd(6,'0');
+  const h = digits.slice(0,2);
+  const m = digits.slice(2,4);
+  const s = digits.slice(4,6);
+  return `${h}:${m}:${s}`;
+}
+
+// Delegation: aplica formatação enquanto digita
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el || el.id !== 'ofrTempoProcesso') return;
+
+  const old = el.value;
+  const novo = formatarTempoAoDigitar(old);
+  // atualiza o campo (coloca o cursor ao final)
+  el.value = novo;
+  el.setSelectionRange(el.value.length, el.value.length);
+});
+
+// Quando sai do campo, completa para hh:mm:ss
+document.addEventListener('focusout', (e) => {
+  const el = e.target;
+  if (!el || el.id !== 'ofrTempoProcesso') return;
+  el.value = formatarTempoCompleto(el.value);
+});
+
+// Helper para formatar valores ao preencher o modal (usado abaixo em editar/abrir)
+function formatarTempoParaCampo(valor) {
+  if (!valor) return '';
+  return formatarTempoCompleto(valor);
+}
 
 

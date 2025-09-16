@@ -341,83 +341,131 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
     { id: "SOLDA",    label: "Solda" },
   ];
 
+window.formatarCampoHora = function(input) {
+  let val = input.value.replace(/[^0-9]/g, ""); // só números
+  if (!val) {
+    input.value = "";
+    return;
+  }
+
+  while (val.length < 6) val = "0" + val;
+  let h = parseInt(val.slice(0, 2), 10);
+  let m = parseInt(val.slice(2, 4), 10);
+  let s = parseInt(val.slice(4, 6), 10);
+
+  if (m > 59) m = 59;
+  if (s > 59) s = 59;
+
+  input.value = `${String(h).padStart(2,"0")}h${String(m).padStart(2,"0")}min${String(s).padStart(2,"0")}s`;
+};
+
+
   // Cria/atualiza inputs de tempo para cada checkbox marcado
-  function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, valoresPreExistentes = {}) {
-    const container = modal.querySelector(seletorContainer);
-    if (!container) return;
+function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, valoresPreExistentes = {}) {
+  const container = modal.querySelector(seletorContainer);
+  if (!container) return;
+  const selecionados = Array.from(modal.querySelectorAll(`.${classeCheckbox}:checked`)).map(cb => cb.value);
+  container.innerHTML = '';
 
-    const selecionados = Array.from(modal.querySelectorAll(`.${classeCheckbox}:checked`))
-      .map(cb => cb.value);
+  const areas = ['comercial', 'engenharia', 'homologado'];
 
-    container.innerHTML = "";
+  selecionados.forEach(proc => {
+    const label = PROCESSOS.find(p => p.id === proc)?.label || proc;
+    const valores = valoresPreExistentes[proc] || {};
 
-    selecionados.forEach(proc => {
-      const label = PROCESSOS.find(p => p.id === proc)?.label || proc;
-      const valores = valoresPreExistentes[proc] || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'border rounded p-3 mb-3 bg-white';
+    wrap.innerHTML = `
+      <div class="font-bold mb-2">${label}</div>
+      <div class="grid grid-cols-3 gap-3">
+        ${areas.map(area => {
+          const v = valores[area] || {};
+          const cap = area.charAt(0).toUpperCase() + area.slice(1);
+          return `
+            <div class="border rounded p-2">
+              <div class="font-semibold text-sm">${cap}</div>
 
-      const wrap = document.createElement("div");
-      wrap.className = "border rounded p-3 mb-2";
-      wrap.innerHTML = `
-        <div class="font-bold mb-2">${label}</div>
-        <div class="grid grid-cols-3 gap-2">
-          <div>
-            <label>Comercial</label>
-            <input type="text" class="tempoProc border px-2 py-1 rounded w-full" 
-                  data-proc="${proc}" data-tipo="comercial"
-                  value="${valores.comercial ?? ""}">
-          </div>
-          <div>
-            <label>Engenharia</label>
-            <input type="text" class="tempoProc border px-2 py-1 rounded w-full"
-                  data-proc="${proc}" data-tipo="engenharia"
-                  value="${valores.engenharia ?? ""}">
-          </div>
-          <div>
-            <label>Homologado</label>
-            <input type="text" class="tempoProc border px-2 py-1 rounded w-full"
-                  data-proc="${proc}" data-tipo="homologado"
-                  value="${valores.homologado ?? ""}">
-          </div>
-        </div>
-      `;
+              <label class="text-xs block mt-2">Setup (h)</label>
+              <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
+                    data-proc="${proc}" data-area="${area}" data-field="setup"
+                    value="${v.setup || ''}"/>
 
-      container.appendChild(wrap);
+              <label class="text-xs block mt-2">Ciclo (h)</label>
+              <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
+                    data-proc="${proc}" data-area="${area}" data-field="ciclo"
+                    value="${v.ciclo || ''}"/>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    container.appendChild(wrap);
+  });
+}
 
-      // === aplicar máscara em todos os inputs do wrap recém-criado ===
-      wrap.querySelectorAll(".tempoProc").forEach(input => {
-        input.setAttribute("maxlength", "6"); // ex: "12h30m"
-        input.addEventListener("input", () => {
-          let v = input.value.replace(/\D/g, ""); // só números
-          if (v.length > 4) v = v.slice(0, 4);   // máximo 4 dígitos
+function coletarTemposPorProcesso(modal) {
+  const tempos = {};
+  modal.querySelectorAll('.tempoProc').forEach(inp => {
+    const proc = inp.dataset.proc;
+    const area = inp.dataset.area;
+    const field = inp.dataset.field;
+    const val = converterHoraParaDecimal(inp.value);
+    if (!tempos[proc]) tempos[proc] = {};
+    if (!tempos[proc][area]) tempos[proc][area] = { setup: 0, ciclo: 0 };
+    tempos[proc][area][field] = isNaN(val) ? 0 : val;
+  });
+  return tempos;
+}
 
-          let horas = v.slice(0, 2);
-          let minutos = v.slice(2);
+function converterHoraParaDecimal(str) {
+  if (!str) return 0;
+  // pega apenas dígitos
+  const match = str.match(/(\d+)h(\d+)min(\d+)s/);
+  if (!match) return 0;
+  const h = parseInt(match[1], 10) || 0;
+  const m = parseInt(match[2], 10) || 0;
+  const s = parseInt(match[3], 10) || 0;
+  return h + (m/60) + (s/3600);
+}
 
-          let resultado = "";
-          if (horas) resultado += horas + "h";
-          if (minutos) resultado += minutos + "m";
+function montarCamposTempoView(container, processos = [], temposObj = {}) {
+  container.innerHTML = '';
+  const areas = ['comercial','engenharia','homologado'];
+  processos.forEach(proc => {
+    const label = PROCESSOS.find(p => p.id === proc)?.label || proc;
+    const valores = temposObj[proc] || {};
 
-          input.value = resultado;
-        });
-      });
-    });
-  }
+    const wrap = document.createElement('div');
+    wrap.className = 'border rounded p-3 mb-3 bg-white';
+    wrap.innerHTML = `
+      <div class="font-bold mb-2">${label}</div>
+      <div class="grid grid-cols-3 gap-3">
+        ${areas.map(area => {
+          const v = valores[area] || {};
+          const cap = area.charAt(0).toUpperCase() + area.slice(1);
+          return `
+            <div class="border rounded p-2">
+              <div class="font-semibold text-sm">${cap}</div>
+              <label class="text-xs block mt-2">Setup (h)</label>
+              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterDecimalParaHora(v.setup)}" />
+              <label class="text-xs block mt-2">Ciclo (h)</label>
+              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterDecimalParaHora(v.ciclo)}" />
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    container.appendChild(wrap);
+  });
+}
 
-
-    // Coleta objeto { USINAGEM: 3.5, SOLDA: 1, ... } a partir dos inputs
-  function coletarTemposPorProcesso(modal) {
-    const tempos = {};
-    modal.querySelectorAll(".tempoProc").forEach(inp => {
-      const proc = inp.dataset.proc;
-      const tipo = inp.dataset.tipo;
-      const v = parseFloat(inp.value);
-      if (!tempos[proc]) tempos[proc] = {};
-      tempos[proc][tipo] = isNaN(v) ? 0 : v;
-    });
-    return tempos;
-  }
-
-
+function converterDecimalParaHora(valor) {
+  if (!valor || isNaN(valor)) return "00h00min00s";
+  const h = Math.floor(valor);
+  const m = Math.floor((valor - h) * 60);
+  const s = Math.round(((valor - h) * 60 - m) * 60);
+  return `${String(h).padStart(2,"0")}h${String(m).padStart(2,"0")}min${String(s).padStart(2,"0")}s`;
+}
 
   // ======== Conteúdo principal ========
   function Content({ mount }){
@@ -1212,353 +1260,265 @@ function ProdutosPage(mount){
   return `<span class="px-2 py-1 rounded text-xs font-bold ${cor}">${status}</span>`;
   }
 
-  // ==== Funções auxiliares ====
-  function abrirModalNovoProduto(){
-    let modal = document.getElementById("modal-novo-produto");
-    if (!modal) {
-      modal = document.createElement("div");
-      modal.id = "modal-novo-produto";
-      modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-      document.body.appendChild(modal);
-    }
+function abrirModalNovoProduto() {
+  let modal = document.getElementById("modal-novo-produto");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modal-novo-produto";
+    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+    document.body.appendChild(modal);
+  }
 
-    modal.innerHTML = `
-      <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-bold mb-4">Adicionar Novo Produto</h3>
-        <div class="grid grid-cols-2 gap-4">
-          <input type="text" id="novoPart" placeholder="Part Number" class="border px-3 py-2 rounded"/>
-          <input type="text" id="novoRevisao" placeholder="Revisão" class="border px-3 py-2 rounded"/>
-          <select id="novoCliente" class="border px-3 py-2 rounded">
-            <option value="">Selecione o Cliente</option>
-            <option value="VOLVO">VOLVO</option>
-            <option value="KOMATSU">KOMATSU</option>
-            <option value="JOHN DEERE">JOHN DEERE</option>
-            <option value="CATERPILLAR">CATERPILLAR</option>
-            <option value="KION">KION</option>
-            <option value="TOYOTA">TOYOTA</option>
-            <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>         
-          </select>
-          <select id="novoComplexidade" class="border px-3 py-2 rounded">
-            <option value="">Selecione a Complexidade</option>
-            <option value="BAIXA">BAIXA</option>
-            <option value="MÉDIA">MÉDIA</option>
-            <option value="ALTA">ALTA</option>
-          </select>
-          <input type="text" id="novoEntrada" placeholder="Data Entrada (dd/mm/yyyy)" class="border px-3 py-2 rounded"/>
-          <input type="text" id="novoShip" placeholder="Ship Date" class="border px-3 py-2 rounded"/>
-          <select id="novoTipo" class="border px-3 py-2 rounded">
-            <option value="">Selecione o Tipo</option>
-            <option value="BLANK">BLANK</option>
-            <option value="CONJUNTO">CONJUNTO</option>
-          </select>
-          <select id="novoStatus" class="border px-3 py-2 rounded col-span-2">
-            <option value="">Selecione o Status</option>
-            <option value="NÃO INICIADO">NÃO INICIADO</option>
-            <option value="EM ANDAMENTO">EM ANDAMENTO</option>
-            <option value="FINALIZADO">FINALIZADO</option>
-          </select>
-          
-          <!-- Seção de Componentes (aparece apenas para CONJUNTO) -->
-          <div id="secaoComponentes" class="col-span-2 hidden">
-            <label class="font-bold">Componentes do Conjunto:</label>
-            <div id="listaComponentes" class="mt-2 space-y-2"></div>
-            <button type="button" id="btnAdicionarComponente" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">+ Adicionar Componente</button>
-          </div>
-          <div class="col-span-2">
-            <label class="font-bold">Processos:</label>
-            <div class="flex flex-wrap gap-4 mt-2">
-              ${PROCESSOS.map(p => `
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" value="${p.id}" class="novoProcesso"> ${p.label}
-                </label>
-              `).join("")}
-            </div>
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">Adicionar Novo Produto</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <input type="text" id="novoPart" placeholder="Part Number" class="border px-3 py-2 rounded"/>
+        <input type="text" id="novoRevisao" placeholder="Revisão" class="border px-3 py-2 rounded"/>
+        <select id="novoCliente" class="border px-3 py-2 rounded">
+          <option value="">Selecione o Cliente</option>
+          <option value="VOLVO">VOLVO</option>
+          <option value="KOMATSU">KOMATSU</option>
+          <option value="JOHN DEERE">JOHN DEERE</option>
+          <option value="CATERPILLAR">CATERPILLAR</option>
+          <option value="KION">KION</option>
+          <option value="TOYOTA">TOYOTA</option>
+          <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>
+        </select>
+        <select id="novoComplexidade" class="border px-3 py-2 rounded">
+          <option value="">Selecione a Complexidade</option>
+          <option value="BAIXA">BAIXA</option>
+          <option value="MÉDIA">MÉDIA</option>
+          <option value="ALTA">ALTA</option>
+        </select>
+        <input type="text" id="novoEntrada" placeholder="Data Entrada (dd/mm/yyyy)" class="border px-3 py-2 rounded"/>
+        <input type="text" id="novoShip" placeholder="Ship Date" class="border px-3 py-2 rounded"/>
+        <select id="novoTipo" class="border px-3 py-2 rounded">
+          <option value="">Selecione o Tipo</option>
+          <option value="BLANK">BLANK</option>
+          <option value="CONJUNTO">CONJUNTO</option>
+        </select>
+        <select id="novoStatus" class="border px-3 py-2 rounded col-span-2">
+          <option value="">Selecione o Status</option>
+          <option value="NÃO INICIADO">NÃO INICIADO</option>
+          <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+          <option value="FINALIZADO">FINALIZADO</option>
+        </select>
 
-            <!-- Aqui vão aparecer os tempos de cada processo marcado -->
-            <div id="temposProcessosNovo" class="grid grid-cols-1 gap-3 mt-3"></div>
+        <div class="col-span-2">
+          <label class="font-bold">Processos:</label>
+          <div class="flex flex-wrap gap-4 mt-2">
+            ${PROCESSOS.map(p => `<label class="flex items-center gap-2"><input type="checkbox" value="${p.id}" class="novoProcesso"> ${p.label}</label>`).join('')}
           </div>
-
-          <!-- Seção de Componentes (apenas para CONJUNTO) -->
-          <div id="secaoComponentes" class="col-span-2 hidden">
-            <label class="font-bold">Componentes do Conjunto:</label>
-            <div id="listaComponentes" class="mt-2 space-y-2"></div>
-            <button type="button" id="btnAdicionarComponente" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">
-              + Adicionar Componente
-            </button>
-          </div>
+          <div id="temposProcessosNovo" class="grid grid-cols-1 gap-3 mt-3"></div>
         </div>
-        <div class="flex justify-end mt-4 gap-2">
-          <button id="cancelarNovo" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
-          <button id="salvarNovo" class="bg-green-600 text-white px-4 py-2 rounded">Salvar</button>
+
+        <div id="secaoComponentes" class="col-span-2 hidden">
+          <label class="font-bold">Componentes do Conjunto:</label>
+          <div id="listaComponentes" class="mt-2 space-y-2"></div>
+          <button type="button" id="btnAdicionarComponente" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">+ Adicionar Componente</button>
         </div>
+
       </div>
-    `;
+      <div class="flex justify-end mt-4 gap-2">
+        <button id="cancelarNovo" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+        <button id="salvarNovo" class="bg-green-600 text-white px-4 py-2 rounded">Salvar</button>
+      </div>
+    </div>
+  `;
 
-    // Sempre que marcar/desmarcar um processo → cria os campos de tempo
-    modal.querySelectorAll(".novoProcesso").forEach(cb => {
-      cb.addEventListener("change", () => {
-        montarCamposTempoPorProcesso(modal, "novoProcesso", "#temposProcessosNovo");
-      });
+  // bind processos -> montar campos
+  modal.querySelectorAll(".novoProcesso").forEach(cb => {
+    cb.addEventListener("change", () => {
+      montarCamposTempoPorProcesso(modal, "novoProcesso", "#temposProcessosNovo");
     });
+  });
 
-    // Mostrar/ocultar seção de componentes baseado no tipo
-    modal.querySelector("#novoTipo").addEventListener("change", (e) => {
-      const secaoComponentes = modal.querySelector("#secaoComponentes");
-      if (e.target.value === "CONJUNTO") {
-        secaoComponentes.classList.remove("hidden");
-      } else {
-        secaoComponentes.classList.add("hidden");
-      }
-    });
+  // tipo -> exibe seção componentes
+  modal.querySelector("#novoTipo").addEventListener("change", (e) => {
+    const secao = modal.querySelector("#secaoComponentes");
+    if (e.target.value === "CONJUNTO") secao.classList.remove("hidden");
+    else secao.classList.add("hidden");
+  });
 
-    // Adicionar componente
-    modal.querySelector("#btnAdicionarComponente").addEventListener("click", () => {
-      adicionarComponente(modal, "listaComponentes");
-    });
-    // cancelar
-    modal.querySelector("#cancelarNovo").addEventListener("click", ()=> modal.remove());
+  // adicionar componente
+  modal.querySelector("#btnAdicionarComponente")?.addEventListener("click", () => adicionarComponente(modal, "listaComponentes"));
 
-    // salvar
-    modal.querySelector("#salvarNovo").addEventListener("click", async ()=>{
-      const processosSelecionados = Array
-        .from(modal.querySelectorAll(".novoProcesso:checked"))
-        .map(cb => cb.value);
+  // cancelar
+  modal.querySelector("#cancelarNovo").addEventListener("click", ()=> modal.remove());
 
+  // salvar
+  modal.querySelector("#salvarNovo").addEventListener("click", async () => {
+    try {
+      const processosSelecionados = Array.from(modal.querySelectorAll(".novoProcesso:checked")).map(cb => cb.value);
       const tempos = coletarTemposPorProcesso(modal);
       const componentes = coletarComponentes(modal, "listaComponentes");
 
       const novo = {
-        "PART NUMBER": $("#novoPart", modal).value,
-        "REVISAO": $("#novoRevisao", modal).value,
-        "CLIENTE": $("#novoCliente", modal).value,
-        "COMPLEXIDADE": $("#novoComplexidade", modal).value,
-        "TIPO": $("#novoTipo", modal).value,
-        "ENTRADA": $("#novoEntrada", modal).value,
-        "SHIP DATE": $("#novoShip", modal).value,
-        "STATUS": $("#novoStatus", modal).value,
-        "processos": processosSelecionados,
-        "tempos": tempos, // <- tempos organizados por processo
-        "componentes": componentes // <- componentes do conjunto
-      };
-
-      try {
-        const novoId = await firebaseService.addProduto(novo);
-        produtos.push({ id: novoId, ...novo });
-        produtosanuais.push({ id: novoId, ...novo });
-
-        modal.remove();
-        renderTabela();
-        graphData = agruparProdutosPorMes(produtosanuais);
-        statusData = gerarStatusData(produtosanuais, year, month);
-        alert("Produto adicionado com sucesso!");
-      } catch (error) {
-        console.error(error);
-        alert("Erro ao adicionar produto.");
-      }
-    });
-  }
-
-  function editarProduto(produto) {
-
-    let modal = document.getElementById("modal-editar-produto");
-    if (!modal) {
-      modal = document.createElement("div");
-      modal.id = "modal-editar-produto";
-      modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-      document.body.appendChild(modal);
-    }
-
-    modal.innerHTML = `
-      <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-bold mb-4">Editar Produto</h3>
-        <div class="grid grid-cols-2 gap-4">
-          <input type="text" id="editPart" value="${produto["PART NUMBER"] || ""}" placeholder="Part Number" class="border px-3 py-2 rounded"/>
-          <input type="text" id="editRevisao" value="${produto["REVISAO"] || ""}" placeholder="Revisão" class="border px-3 py-2 rounded"/>
-          
-          <select id="editCliente" class="border px-3 py-2 rounded">
-            <option value="">Selecione o Cliente</option>
-            <option value="VOLVO">VOLVO</option>
-            <option value="KOMATSU">KOMATSU</option>
-            <option value="JOHN DEERE">JOHN DEERE</option>
-            <option value="CATERPILLAR">CATERPILLAR</option>
-            <option value="KION">KION</option>
-            <option value="TOYOTA">TOYOTA</option>
-            <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>          
-          </select>
-          
-          <select id="editComplexidade" class="border px-3 py-2 rounded">
-            <option value="">Selecione a Complexidade</option>
-            <option value="BAIXA">BAIXA</option>
-            <option value="MÉDIA">MÉDIA</option>
-            <option value="ALTA">ALTA</option>
-          </select>
-          
-          <input type="text" id="editEntrada" value="${produto["ENTRADA"] || ""}" placeholder="Data Entrada (dd/mm/yyyy)" class="border px-3 py-2 rounded"/>
-          <input type="text" id="editShip" value="${produto["SHIP DATE"] || ""}" placeholder="Ship Date" class="border px-3 py-2 rounded"/>
-          
-          <select id="editTipo" class="border px-3 py-2 rounded">
-            <option value="">Selecione o Tipo</option>
-            <option value="BLANK">BLANK</option>
-            <option value="CONJUNTO">CONJUNTO</option>
-          </select>
-          
-          <!-- Seção de Componentes (aparece apenas para CONJUNTO) -->
-          <div id="secaoComponentesEdit" class="col-span-2 hidden">
-            <label class="font-bold">Componentes do Conjunto:</label>
-            <div id="listaComponentesEdit" class="mt-2 space-y-2"></div>
-            <button type="button" id="btnAdicionarComponenteEdit" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">+ Adicionar Componente</button>
-          </div>
-          
-          <input type="number" id="novoTempoComercial" placeholder="Tempo Comercial (h)" class="border px-3 py-2 rounded"/>
-          <input type="number" id="novoTempoEngenharia" placeholder="Tempo Engenharia (h)" class="border px-3 py-2 rounded"/>
-          <input type="number" id="novoTempoHomologado" placeholder="Tempo Homologado (h)" class="border px-3 py-2 rounded"/>
-
-
-          <select id="editStatus" class="border px-3 py-2 rounded col-span-2">
-            <option value="">Selecione o Status</option>
-            <option value="NÃO INICIADO">NÃO INICIADO</option>
-            <option value="EM ANDAMENTO">EM ANDAMENTO</option>
-            <option value="FINALIZADO">FINALIZADO</option>
-            <option value="PROCESSO DE USINAGEM">PROCESSO DE USINAGEM</option>
-            <option value="PROCESSO DE CHANFRO">PROCESSO DE CHANFRO</option>
-            <option value="PROCESSO DE DOBRA">PROCESSO DE DOBRA</option>
-            <option value="PROCESSO DE SOLDA">PROCESSO DE SOLDA</option>
-          </select>
-
-          <div class="col-span-2">
-            <label class="font-bold">Processos:</label>
-            <div class="flex flex-wrap gap-4 mt-2">
-              ${PROCESSOS.map(p => `
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" value="${p.id}" class="editProcesso"> ${p.label}
-                </label>
-              `).join("")}
-            </div>
-
-            <!-- Tempos por processo (edit) -->
-            <div id="temposProcessosEdit" class="grid grid-cols-1 gap-3 mt-3"></div>
-          </div>
-
-          <!-- Seção de Componentes (apenas para CONJUNTO) -->
-          <div id="secaoComponentesEdit" class="col-span-2 ${produto.TIPO === 'CONJUNTO' ? '' : 'hidden'}">
-            <label class="font-bold">Componentes do Conjunto:</label>
-            <div id="listaComponentesEdit" class="mt-2 space-y-2"></div>
-            <button type="button" id="btnAdicionarComponenteEdit" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">
-              + Adicionar Componente
-            </button>
-          </div>
-
-        </div>
-
-        <div class="flex justify-end mt-4 gap-2">
-          <button id="cancelarEditar" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
-          <button id="salvarEditar" class="bg-blue-600 text-white px-4 py-2 rounded">Salvar</button>
-        </div>
-
-      </div>
-    `;
-
-    // Marcar os processos já salvos
-    (produto.processos || []).forEach(proc => {
-      const cb = modal.querySelector(`.editProcesso[value="${proc}"]`);
-      if (cb) cb.checked = true;
-    });
-
-    // Desenhar campos de tempo com valores já salvos
-    montarCamposTempoPorProcesso(
-      modal,
-      "editProcesso",
-      "#temposProcessosEdit",
-      produto.tempos || {} // valores existentes
-    );
-
-    // Redesenhar quando o usuário marca/desmarca
-    modal.querySelectorAll(".editProcesso").forEach(cb => {
-      cb.addEventListener("change", () => {
-        montarCamposTempoPorProcesso(modal, "editProcesso", "#temposProcessosEdit", produto.tempos || {});
-      });
-    });
-
-    // Mostrar/ocultar seção de componentes baseado no tipo
-    const selectTipoEdit = modal.querySelector("#editTipo");
-    const secaoComponentesEdit = modal.querySelector("#secaoComponentesEdit");
-    
-    selectTipoEdit.addEventListener("change", () => {
-      if (selectTipoEdit.value === "CONJUNTO") {
-        secaoComponentesEdit.classList.remove("hidden");
-      } else {
-        secaoComponentesEdit.classList.add("hidden");
-      }
-    });
-
-    // Renderizar componentes existentes
-    if (produto.componentes && produto.componentes.length > 0) {
-      renderizarComponentesEdit(modal, produto.componentes);
-    }
-
-    // Adicionar componente
-    modal.querySelector("#btnAdicionarComponenteEdit").addEventListener("click", () => {
-      adicionarComponenteEdit(modal);
-    });
-
-    // seleciona valores atuais
-    modal.querySelector("#editCliente").value = produto["CLIENTE"] || "";
-    modal.querySelector("#editComplexidade").value = produto["COMPLEXIDADE"] || "";
-    modal.querySelector("#editTipo").value = produto["TIPO"] || "";
-    modal.querySelector("#editStatus").value = produto["STATUS"] || "";
-
-    // cancelar
-    modal.querySelector("#cancelarEditar").addEventListener("click", () => modal.remove());
-
-    // salvar
-    modal.querySelector("#salvarEditar").addEventListener("click", async () => {
-      const processosSelecionados = Array
-        .from(modal.querySelectorAll(".editProcesso:checked"))
-        .map(cb => cb.value);
-
-      const tempos = coletarTemposPorProcesso(modal);
-      const componentes = coletarComponentes(modal, "listaComponentesEdit");
-
-      const atualizado = {
-        "PART NUMBER": $("#editPart", modal).value,
-        "REVISAO": $("#editRevisao", modal).value,
-        "CLIENTE": $("#editCliente", modal).value,
-        "COMPLEXIDADE": $("#editComplexidade", modal).value,
-        "TIPO": $("#editTipo", modal).value,
-        "ENTRADA": $("#editEntrada", modal).value,
-        "SHIP DATE": $("#editShip", modal).value,
-        "STATUS": $("#editStatus", modal).value,
-        // removidos tempos globais
+        "PART NUMBER": modal.querySelector("#novoPart").value,
+        "REVISAO": modal.querySelector("#novoRevisao").value,
+        "CLIENTE": modal.querySelector("#novoCliente").value,
+        "COMPLEXIDADE": modal.querySelector("#novoComplexidade").value,
+        "TIPO": modal.querySelector("#novoTipo").value,
+        "ENTRADA": modal.querySelector("#novoEntrada").value,
+        "SHIP DATE": modal.querySelector("#novoShip").value,
+        "STATUS": modal.querySelector("#novoStatus").value,
         "processos": processosSelecionados,
         "tempos": tempos,
         "componentes": componentes
       };
-      try {
-        if (produto.id) {
-          await firebaseService.updateProduto(produto.id, atualizado);
-        }
-        // Atualiza listas locais corretamente
-        const idxLocal = produtos.findIndex(p => p.id === produto.id);
-        if (idxLocal >= 0) produtos[idxLocal] = { ...produtos[idxLocal], ...atualizado };
-        const globalIdx = produtosanuais.findIndex(p => p.id === produto.id);
-        if (globalIdx >= 0) produtosanuais[globalIdx] = { ...produtosanuais[globalIdx], ...atualizado };
 
-        modal.remove();
-        renderTabela();
-        alert("Produto atualizado com sucesso!");
-      } catch (error) {
-        console.error("Erro ao atualizar produto:", error);
-        alert("Erro ao atualizar produto.");
-      }
-    });
+      const novoId = await firebaseService.addProduto(novo);
+      // atualizar arrays locais (se existir lógica semelhante a original)
+      produtos.push({ id: novoId, ...novo });
+      produtosanuais.push({ id: novoId, ...novo });
 
+      modal.remove();
+      renderTabela(); // se essa função existir no escopo (mantive o nome original)
+      graphData = agruparProdutosPorMes(produtosanuais);
+      statusData = gerarStatusData(produtosanuais, year, month);
+      alert("Produto adicionado com sucesso!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao adicionar produto.");
+    }
+  });
+}
+
+
+
+  // ==== Funções auxiliares ====
+function editarProduto(produto) {
+  let modal = document.getElementById("modal-editar-produto");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modal-editar-produto";
+    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+    document.body.appendChild(modal);
   }
 
+  modal.innerHTML = `
+    <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold mb-4">Editar Produto</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <input type="text" id="editPart" value="${produto["PART NUMBER"] || ""}" placeholder="Part Number" class="border px-3 py-2 rounded"/>
+        <input type="text" id="editRevisao" value="${produto["REVISAO"] || ""}" placeholder="Revisão" class="border px-3 py-2 rounded"/>
+        <select id="editCliente" class="border px-3 py-2 rounded">
+          <option value="">Selecione o Cliente</option>
+          <option value="VOLVO" ${produto["CLIENTE"] === "VOLVO" ? "selected" : ""}>VOLVO</option>
+          <option value="KOMATSU" ${produto["CLIENTE"] === "KOMATSU" ? "selected" : ""}>KOMATSU</option>
+          <option value="JOHN DEERE" ${produto["CLIENTE"] === "JOHN DEERE" ? "selected" : ""}>JOHN DEERE</option>
+          <option value="CATERPILLAR" ${produto["CLIENTE"] === "CATERPILLAR" ? "selected" : ""}>CATERPILLAR</option>
+          <option value="KION" ${produto["CLIENTE"] === "KION" ? "selected" : ""}>KION</option>
+          <option value="TOYOTA" ${produto["CLIENTE"] === "TOYOTA" ? "selected" : ""}>TOYOTA</option>
+          <option value="CL CALDEIRARIA" ${produto["CLIENTE"] === "CL CALDEIRARIA" ? "selected" : ""}>CL CALDEIRARIA</option>                    
+        </select>
+        <select id="editComplexidade" class="border px-3 py-2 rounded">
+          <option value="">Selecione a Complexidade</option>
+            <option value="BAIXA" ${produto["COMPLEXIDADE"] === "BAIXA" ? "selected" : ""}>BAIXA</option>
+            <option value="MÉDIA" ${produto["COMPLEXIDADE"] === "MÉDIA" ? "selected" : ""}>MÉDIA</option>
+            <option value="ALTA" ${produto["COMPLEXIDADE"] === "ALTA" ? "selected" : ""}>ALTA</option>
+        </select>
+        <input type="text" id="editEntrada" value="${produto["ENTRADA"] || ""}" placeholder="Data Entrada" class="border px-3 py-2 rounded"/>
+        <input type="text" id="editShip" value="${produto["SHIP DATE"] || ""}" placeholder="Ship Date" class="border px-3 py-2 rounded"/>
+        <select id="editTipo" class="border px-3 py-2 rounded">
+          <option value="">Selecione o Tipo</option>
+          <option value="BLANK" ${produto["TIPO"] === "BLANK" ? "selected" : ""}>BLANK</option>
+          <option value="CONJUNTO" ${produto["TIPO"] === "CONJUNTO" ? "selected" : ""}>CONJUNTO</option>
+        </select>
+        <select id="editStatus" class="border px-3 py-2 rounded col-span-2">
+          <option value="">Selecione o Status</option>
+          <option value="NÃO INICIADO" ${produto["STATUS"] === "NÃO INICIADO" ? "selected" : ""}>NÃO INICIADO</option>
+          <option value="EM ANDAMENTO" ${produto["STATUS"] === "EM ANDAMENTO" ? "selected" : ""}>EM ANDAMENTO</option>
+          <option value="FINALIZADO" ${produto["STATUS"] === "FINALIZADO" ? "selected" : ""}>FINALIZADO</option>
+        </select>
+
+        <div class="col-span-2">
+          <label class="font-bold">Processos:</label>
+          <div class="flex flex-wrap gap-4 mt-2">
+            ${PROCESSOS.map(p => `<label class="flex items-center gap-2"><input type="checkbox" value="${p.id}" class="editProcesso" ${ (produto.processos || []).includes(p.id) ? 'checked':'' }> ${p.label}</label>`).join('')}
+          </div>
+          <div id="temposProcessosEdit" class="grid grid-cols-1 gap-3 mt-3"></div>
+        </div>
+
+        <div id="secaoComponentesEdit" class="col-span-2 ${(produto["TIPO"] === "CONJUNTO") ? "" : "hidden"}">
+          <label class="font-bold">Componentes do Conjunto:</label>
+          <div id="listaComponentesEdit" class="mt-2 space-y-2"></div>
+          <button type="button" id="btnAdicionarComponenteEdit" class="bg-green-500 text-white px-3 py-1 rounded text-sm mt-2">+ Adicionar Componente</button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4 gap-2">
+        <button id="cancelarEditar" class="bg-gray-500 text-white px-4 py-2 rounded">Cancelar</button>
+        <button id="salvarEditar" class="bg-blue-600 text-white px-4 py-2 rounded">Salvar</button>
+      </div>
+    </div>
+  `;
+
+  // montar campos de tempos com valores existentes (produto.tempos)
+  montarCamposTempoPorProcesso(modal, "editProcesso", "#temposProcessosEdit", produto.tempos || {});
+
+  // mostrar/ocultar seção de componentes conforme tipo
+  modal.querySelector("#editTipo").addEventListener("change", () => {
+    const sec = modal.querySelector("#secaoComponentesEdit");
+    if (modal.querySelector("#editTipo").value === "CONJUNTO") sec.classList.remove("hidden");
+    else sec.classList.add("hidden");
+  });
+
+  // renderizar componentes existentes
+  (produto.componentes || []).forEach(c => adicionarComponente(modal, "listaComponentesEdit", c));
+
+  // bind adicionar componente
+  modal.querySelector("#btnAdicionarComponenteEdit").addEventListener("click", () => adicionarComponente(modal, "listaComponentesEdit"));
+
+  // cancelar
+  modal.querySelector("#cancelarEditar").addEventListener("click", ()=> modal.remove());
+
+  // salvar
+  modal.querySelector("#salvarEditar").addEventListener("click", async () => {
+    try {
+      const processosSelecionados = Array.from(modal.querySelectorAll(".editProcesso:checked")).map(cb => cb.value);
+      const tempos = coletarTemposPorProcesso(modal);
+      const componentes = coletarComponentes(modal, "listaComponentesEdit");
+
+      const atualizado = {
+        "PART NUMBER": modal.querySelector("#editPart").value,
+        "REVISAO": modal.querySelector("#editRevisao").value,
+        "CLIENTE": modal.querySelector("#editCliente").value,
+        "COMPLEXIDADE": modal.querySelector("#editComplexidade").value,
+        "TIPO": modal.querySelector("#editTipo").value,
+        "ENTRADA": modal.querySelector("#editEntrada").value,
+        "SHIP DATE": modal.querySelector("#editShip").value,
+        "STATUS": modal.querySelector("#editStatus").value,
+        "processos": processosSelecionados,
+        "tempos": tempos,
+        "componentes": componentes
+      };
+
+      if (produto.id) {
+        await firebaseService.updateProduto(produto.id, atualizado);
+      }
+
+      // atualiza arrays locais se necessário (seguir seu padrão)
+      const idxLocal = produtos.findIndex(p => p.id === produto.id);
+      if (idxLocal >= 0) produtos[idxLocal] = { id: produto.id, ...atualizado };
+      const globalIdx = produtosanuais.findIndex(p => p.id === produto.id);
+      if (globalIdx >= 0) produtosanuais[globalIdx] = { id: produto.id, ...atualizado };
+
+      modal.remove();
+      renderTabela();
+      alert("Produto atualizado com sucesso!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao atualizar produto.");
+    }
+  });
+}
+
   
+// === Visualizar Produto ===
 function visualizarProduto(produto) {
   let modal = document.getElementById("modal-visualizar-produto");
-  
-
   if (!modal) {
     modal = document.createElement("div");
     modal.id = "modal-visualizar-produto";
@@ -1566,111 +1526,81 @@ function visualizarProduto(produto) {
     document.body.appendChild(modal);
   }
 
-  // lista de processos com tempos
-  let listaProcessos = "";
-  if (produto.tempos) {
-    Object.keys(produto.tempos).forEach(proc => {
-      const t = produto.tempos[proc] || {};
-      listaProcessos += `
-        <div class="mb-2">
-          <strong>${proc}</strong>
-          <div class="ml-4 text-sm text-gray-700">
-            Comercial: ${t.comercial || "-"}<br>
-            Engenharia: ${t.engenharia || "-"}<br>
-            Homologado: ${t.homologado || "-"}
-          </div>
-        </div>`;
-    });
-  } else {
-    listaProcessos = "<div>Nenhum processo cadastrado</div>";
-  }
-
-  let processosTexto = "Nenhum processo";
-  if (produto.tempos && Object.keys(produto.tempos).length > 0) {
-    processosTexto = Object.keys(produto.tempos).map(proc => {
-      const t = produto.tempos[proc] || {};
-      return ` - ${proc}
-        • Comercial: ${t.comercial || "-"}
-        • Engenharia: ${t.engenharia || "-"}
-        • Homologado: ${t.homologado || "-"}`;
-    }).join("%0D%0A%0D%0A");
-  }
-
-
-  let corpoTexto = 
-    `Bom dia a Todos,%0D%0A%0D%0A` +
-    `Segue abaixo as informações do produto:%0D%0A%0D%0A` +
-    `Part Number: ${produto["PART NUMBER"] || ""}%0D%0A` +
-    `Revisão: ${produto["REVISAO"] || ""}%0D%0A` +
-    `Cliente: ${produto["CLIENTE"] || ""}%0D%0A` +
-    `Complexidade: ${produto["COMPLEXIDADE"] || ""}%0D%0A` +
-    `Tipo: ${produto["TIPO"] || ""}%0D%0A` +
-    `Entrada: ${produto["ENTRADA"] || ""}%0D%0A` +
-    `Ship Date: ${produto["SHIP DATE"] || ""}%0D%0A` +
-    `Status: ${produto["STATUS"] || ""}%0D%0A%0D%0A` +
-    `Processos & Tempos:%0D%0A${processosTexto}%0D%0A%0D%0A` +
-    (produto.TIPO === "CONJUNTO" 
-      ? `Componentes:%0D%0A${(produto.componentes || []).map(c => ` - ${c}`).join("%0D%0A")}` 
-      : "");
-
-
   modal.innerHTML = `
     <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">Visualizar Produto</h3>
       <div class="grid grid-cols-2 gap-4">
-        <input type="text" readonly value="${produto["PART NUMBER"] || ""}" placeholder="Part Number" class="border px-3 py-2 rounded bg-gray-100"/>
-        <input type="text" readonly value="${produto["REVISAO"] || ""}" placeholder="Revisão" class="border px-3 py-2 rounded bg-gray-100"/>
-        
-        <input type="text" readonly value="${produto["CLIENTE"] || ""}" placeholder="Cliente" class="border px-3 py-2 rounded bg-gray-100"/>
-        <input type="text" readonly value="${produto["COMPLEXIDADE"] || ""}" placeholder="Complexidade" class="border px-3 py-2 rounded bg-gray-100"/>
-        
-        <input type="text" readonly value="${produto["ENTRADA"] || ""}" placeholder="Data Entrada" class="border px-3 py-2 rounded bg-gray-100"/>
-        <input type="text" readonly value="${produto["SHIP DATE"] || ""}" placeholder="Ship Date" class="border px-3 py-2 rounded bg-gray-100"/>
-        
-        <input type="text" readonly value="${produto["TIPO"] || ""}" placeholder="Tipo" class="border px-3 py-2 rounded bg-gray-100"/>
-        <input type="text" readonly value="${produto["STATUS"] || ""}" placeholder="Status" class="border px-3 py-2 rounded bg-gray-100"/>
-      </div>
+        <input type="text" value="${produto["PART NUMBER"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["REVISAO"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["CLIENTE"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["COMPLEXIDADE"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["ENTRADA"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["SHIP DATE"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["TIPO"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
+        <input type="text" value="${produto["STATUS"] || ""}" disabled class="border px-3 py-2 rounded bg-gray-100" />
 
-      <!-- Processos e tempos -->
-      <div class="col-span-2 mt-4">
-        <label class="font-bold">Processos:</label>
-        <div class="mt-2 space-y-2">
-          ${(produto.processos || []).map(proc => {
-            const tempos = produto.tempos?.[proc] || {};
-            return `
-              <div class="border rounded p-3">
-                <div class="font-bold mb-2">${proc}</div>
-                <div class="grid grid-cols-3 gap-2">
-                  <input type="text" readonly value="${tempos.comercial ?? ""}" placeholder="Comercial" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
-                  <input type="text" readonly value="${tempos.engenharia ?? ""}" placeholder="Engenharia" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
-                  <input type="text" readonly value="${tempos.homologado ?? ""}" placeholder="Homologado" class="tempoProc border px-2 py-1 rounded w-full bg-gray-100"/>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </div>
-
-      <!-- Componentes -->
-      ${produto.TIPO === "CONJUNTO" ? `
-        <div class="col-span-2 mt-4">
-          <label class="font-bold">Componentes do Conjunto:</label>
-          <div class="mt-2 space-y-2">
-            ${(produto.componentes || []).map(c => `
-              <div class="border rounded p-2 bg-gray-100">${c}</div>
-            `).join("")}
+        <div class="col-span-2">
+          <label class="font-bold">Processos Selecionados</label>
+          <div class="flex flex-wrap gap-2 mt-2">
+            ${(PROCESSOS.map(p => {
+              const checked = (produto.processos || []).includes(p.id) ? 'checked' : '';
+              return `<label class="flex items-center gap-2"><input type="checkbox" disabled ${checked}> ${p.label}</label>`;
+            })).join('')}
           </div>
         </div>
-      ` : ""}
 
-      <div class="flex justify-end mt-6">
-        <button id="fecharVisualizar" class="bg-gray-500 text-white px-4 py-2 rounded">Fechar</button>
+        <div id="temposProcessosView" class="col-span-2"></div>
+
+        <div id="secaoComponentesView" class="col-span-2 ${(produto["TIPO"] === "CONJUNTO") ? "" : "hidden"}">
+          <label class="font-bold block mb-2">Componentes:</label>
+          <div id="listaComponentesView" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button id="fecharVisualizar" class="bg-red-500 text-white px-4 py-2 rounded">Fechar</button>
       </div>
     </div>
   `;
 
-  modal.querySelector("#fecharVisualizar")
-    .addEventListener("click", ()=> modal.remove());
+  // montar view de tempos por processo (readonly)
+  const processosList = produto.processos && produto.processos.length ? produto.processos : Object.keys(produto.tempos || {});
+  montarCamposTempoView(modal.querySelector('#temposProcessosView'), processosList, produto.tempos || {});
+
+  // renderizar componentes (readonly)
+  const lista = modal.querySelector("#listaComponentesView");
+  (produto.componentes || []).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'border rounded p-3 bg-gray-100 mb-2';
+
+    const compTemposHtml = ['comercial','engenharia','homologado'].map(area=>{
+      const tv = (c.tempos && c.tempos[area]) || {};
+      const cap = area.charAt(0).toUpperCase() + area.slice(1);
+      return `
+        <div>
+          <div class="font-semibold">${cap}</div>
+          <div class="text-sm">Setup: ${tv.setup ?? '-'}</div>
+          <div class="text-sm">Ciclo: ${tv.ciclo ?? '-'}</div>
+        </div>
+      `;
+    }).join('');
+
+    div.innerHTML = `
+      <div class="grid grid-cols-2 gap-2">
+        <input type="text" value="${c.partNumber || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
+        <input type="text" value="${c.revisao || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
+        <input type="text" value="${c.complexidade || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
+        <input type="text" value="${c.status || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
+      </div>
+
+      <div class="mt-2 border-t pt-2 grid grid-cols-3 gap-3">
+        ${compTemposHtml}
+      </div>
+    `;
+    lista.appendChild(div);
+  });
+
+  modal.querySelector("#fecharVisualizar").addEventListener("click", ()=> modal.remove());
 }
 
 
@@ -1686,10 +1616,6 @@ function visualizarProduto(produto) {
     selectCliente.appendChild(opt);
   });
 
-
-
-
-
   // Eventos dos filtros
   ['#filtroProdutos','#filtroCliente','#filtroProcesso','#filtroDataInicio']
     .forEach(sel => {
@@ -1699,10 +1625,8 @@ function visualizarProduto(produto) {
 
 }
 
-
   // init
 App();
-
 
 // ======== Página de Gráficos ========
 function GraficosPage(mount) {
@@ -2155,334 +2079,129 @@ function ForecastPage(mount) {
   };
 }
 
-
-
-// ======== Funções auxiliares para componentes ========
-function adicionarComponente(modal) {
-  const listaComponentes = modal.querySelector("#listaComponentes");
-  const componenteId = Date.now(); // ID único baseado no timestamp
-  
-  const componenteDiv = document.createElement("div");
-  componenteDiv.className = "border rounded p-3 bg-gray-50";
-  componenteDiv.dataset.componenteId = componenteId;
-  
-  componenteDiv.innerHTML = `
-    <div class="grid grid-cols-2 gap-2">
-      <input type="text" placeholder="Part Number do Componente" class="border px-2 py-1 rounded componente-part"/>
-      <input type="text" placeholder="Revisão" class="border px-2 py-1 rounded componente-revisao"/>
-      <select class="border px-2 py-1 rounded componente-cliente">
-        <option value="">Cliente</option>
-        <option value="VOLVO">VOLVO</option>
-        <option value="KOMATSU">KOMATSU</option>
-        <option value="JOHN DEERE">JOHN DEERE</option>
-        <option value="CATERPILLAR">CATERPILLAR</option>
-        <option value="KION">KION</option>
-        <option value="TOYOTA">TOYOTA</option>
-        <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>
-      </select>
-      <select class="border px-2 py-1 rounded componente-complexidade">
-        <option value="">Complexidade</option>
-        <option value="BAIXA">BAIXA</option>
-        <option value="MÉDIA">MÉDIA</option>
-        <option value="ALTA">ALTA</option>
-      </select>
-      <input type="text" placeholder="Data Entrada" class="border px-2 py-1 rounded componente-entrada"/>
-      <input type="text" placeholder="Ship Date" class="border px-2 py-1 rounded componente-ship"/>
-      <select class="border px-2 py-1 rounded componente-status">
-        <option value="">Status</option>
-        <option value="NÃO INICIADO">NÃO INICIADO</option>
-        <option value="EM ANDAMENTO">EM ANDAMENTO</option>
-        <option value="FINALIZADO">FINALIZADO</option>
-      </select>
-      <button type="button" class="bg-red-500 text-white px-2 py-1 rounded text-sm remover-componente">
-        Remover
-      </button>
-    </div>
-  `;
-  
-  listaComponentes.appendChild(componenteDiv);
-  
-  // Evento para remover componente
-  componenteDiv.querySelector(".remover-componente").addEventListener("click", () => {
-    componenteDiv.remove();
-  });
+// Função para renderizar componentes de forma legível
+function renderizarListaComponentes(componentes = []) {
+  if (!Array.isArray(componentes) || componentes.length === 0) {
+    return "Nenhum componente cadastrado.";
+  }
+  return componentes.map(c => `
+  <div class="p-2 border rounded mb-1 bg-gray-50">
+    <strong>${c.partNumber || ""}</strong> Rev: ${c.revisao || ""}<br>
+    Complexidade: ${c.complexidade || ""} | Status: ${c.status || ""}
+  </div>
+  `).join("");
 }
 
-function coletarComponentes(modal) {
-  const componentesDivs = modal.querySelectorAll("#listaComponentes > div");
+// ======== Funções auxiliares para componentes ========
+function adicionarComponente(modal, listaId = 'listaComponentes', compVals = {}) {
+  const lista = modal.querySelector(`#${listaId}`);
+  if (!lista) return;
+  const componenteId = 'comp_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+
+  const v = compVals || {};
+  const div = document.createElement('div');
+  div.className = 'border rounded p-3 bg-gray-50 mb-2';
+  div.dataset.componenteId = componenteId;
+
+  // tempos por componente: comercial/engenharia/homologado -> setup/ciclo
+  const areas = ['comercial','engenharia','homologado'];
+  const temposHtml = areas.map(area => {
+    const tv = (v.tempos && v.tempos[area]) || {};
+    const cap = area.charAt(0).toUpperCase() + area.slice(1);
+    return `
+      <div>
+        <div class="font-semibold">${cap}</div>
+
+        <label class="text-xs block mt-1">Setup (h)</label>
+        <input type="text" class="comp-tempo border px-2 py-1 rounded w-full"
+              data-area="${area}" data-field="setup"
+              value="${tv.setup ?? ''}"
+              onblur="formatarCampoHora(this)"/>
+
+        <label class="text-xs block mt-1">Ciclo (h)</label>
+        <input type="text" class="comp-tempo border px-2 py-1 rounded w-full"
+              data-area="${area}" data-field="ciclo"
+              value="${tv.ciclo ?? ''}"
+              onblur="formatarCampoHora(this)"/>
+      </div>
+    `;
+  }).join('');
+
+  div.innerHTML = `
+    <div class="grid grid-cols-2 gap-2">
+      <input type="text" placeholder="Part Number do Componente" value="${v.partNumber || ''}" class="componente-part border px-2 py-1 rounded w-full"/>
+      <input type="text" placeholder="Revisão" value="${v.revisao || ''}" class="componente-revisao border px-2 py-1 rounded w-full"/>
+      <select class="componente-complexidade border px-2 py-1 rounded w-full">
+        <option value="">Complexidade</option>
+        <option value="BAIXA" ${v.complexidade === 'BAIXA' ? 'selected' : ''}>BAIXA</option>
+        <option value="MÉDIA" ${v.complexidade === 'MÉDIA' ? 'selected' : ''}>MÉDIA</option>
+        <option value="ALTA" ${v.complexidade === 'ALTA' ? 'selected' : ''}>ALTA</option>
+      </select>
+      <select class="componente-status border px-2 py-1 rounded w-full">
+        <option value="">Status</option>
+        <option value="NÃO INICIADO" ${v.status === 'NÃO INICIADO' ? 'selected' : ''}>NÃO INICIADO</option>
+        <option value="EM ANDAMENTO" ${v.status === 'EM ANDAMENTO' ? 'selected' : ''}>EM ANDAMENTO</option>
+        <option value="FINALIZADO" ${v.status === 'FINALIZADO' ? 'selected' : ''}>FINALIZADO</option>
+      </select>
+    </div>
+
+    <div class="mt-3 border-t pt-2">
+      <div class="font-bold mb-2">Tempos do Componente (horas)</div>
+      <div class="grid grid-cols-3 gap-3">
+        ${temposHtml}
+      </div>
+    </div>
+
+    <div class="flex justify-end mt-2">
+      <button type="button" class="bg-red-500 text-white px-2 py-1 rounded text-sm remover-componente">Remover</button>
+    </div>
+  `;
+
+  // evento remover
+  div.querySelector('.remover-componente').addEventListener('click', ()=> div.remove());
+
+  lista.appendChild(div);
+}
+
+// coleta componentes (funciona tanto para listaComponentes quanto listaComponentesEdit)
+function coletarComponentes(modal, listaId = 'listaComponentes') {
+  const lista = modal.querySelector(`#${listaId}`);
   const componentes = [];
-  
-  componentesDivs.forEach(div => {
-    const componente = {
+  if (!lista) return componentes;
+
+  Array.from(lista.querySelectorAll('[data-componente-id]')).forEach(div => {
+    const tempos = { comercial:{setup:0,ciclo:0}, engenharia:{setup:0,ciclo:0}, homologado:{setup:0,ciclo:0} };
+    div.querySelectorAll('.comp-tempo').forEach(inp => {
+      const area = inp.dataset.area;
+      const field = inp.dataset.field;
+      const v = parseFloat(inp.value);
+      if (!tempos[area]) tempos[area] = { setup:0, ciclo:0 };
+      tempos[area][field] = isNaN(v) ? 0 : v;
+    });
+
+    componentes.push({
       id: div.dataset.componenteId,
-      partNumber: div.querySelector(".componente-part").value,
-      revisao: div.querySelector(".componente-revisao").value,
-      cliente: div.querySelector(".componente-cliente").value,
-      complexidade: div.querySelector(".componente-complexidade").value,
-      entrada: div.querySelector(".componente-entrada").value,
-      shipDate: div.querySelector(".componente-ship").value,
-      status: div.querySelector(".componente-status").value
-    };
-    
-    if (componente.partNumber) { // Só adiciona se tiver part number
-      componentes.push(componente);
-    }
+      partNumber: div.querySelector('.componente-part')?.value || '',
+      revisao: div.querySelector('.componente-revisao')?.value || '',
+      complexidade: div.querySelector('.componente-complexidade')?.value || '',
+      status: div.querySelector('.componente-status')?.value || '',
+      tempos
+    });
   });
-  
+
   return componentes;
 }
 
-function renderizarComponentes(modal, componentes = []) {
-  const listaComponentes = modal.querySelector("#listaComponentes");
-  listaComponentes.innerHTML = "";
-  
-  componentes.forEach(comp => {
-    const componenteDiv = document.createElement("div");
-    componenteDiv.className = "border rounded p-3 bg-gray-50";
-    componenteDiv.dataset.componenteId = comp.id || Date.now();
-    
-    componenteDiv.innerHTML = `
-      <div class="grid grid-cols-2 gap-2">
-        <input type="text" placeholder="Part Number do Componente" value="${comp.partNumber || ''}" class="border px-2 py-1 rounded componente-part"/>
-        <input type="text" placeholder="Revisão" value="${comp.revisao || ''}" class="border px-2 py-1 rounded componente-revisao"/>
-        <select class="border px-2 py-1 rounded componente-cliente">
-          <option value="">Cliente</option>
-          <option value="VOLVO" ${comp.cliente === 'VOLVO' ? 'selected' : ''}>VOLVO</option>
-          <option value="KOMATSU" ${comp.cliente === 'KOMATSU' ? 'selected' : ''}>KOMATSU</option>
-          <option value="JOHN DEERE" ${comp.cliente === 'JOHN DEERE' ? 'selected' : ''}>JOHN DEERE</option>
-          <option value="CATERPILLAR" ${comp.cliente === 'CATERPILLAR' ? 'selected' : ''}>CATERPILLAR</option>
-          <option value="KION" ${comp.cliente === 'KION' ? 'selected' : ''}>KION</option>
-          <option value="TOYOTA" ${comp.cliente === 'TOYOTA' ? 'selected' : ''}>TOYOTA</option>
-          <option value="CL CALDEIRARIA" ${comp.cliente === 'CL CALDEIRARIA' ? 'selected' : ''}>CL CALDEIRARIA</option>
-        </select>
-        <select class="border px-2 py-1 rounded componente-complexidade">
-          <option value="">Complexidade</option>
-          <option value="BAIXA" ${comp.complexidade === 'BAIXA' ? 'selected' : ''}>BAIXA</option>
-          <option value="MÉDIA" ${comp.complexidade === 'MÉDIA' ? 'selected' : ''}>MÉDIA</option>
-          <option value="ALTA" ${comp.complexidade === 'ALTA' ? 'selected' : ''}>ALTA</option>
-        </select>
-        <input type="text" placeholder="Data Entrada" value="${comp.entrada || ''}" class="border px-2 py-1 rounded componente-entrada"/>
-        <input type="text" placeholder="Ship Date" value="${comp.shipDate || ''}" class="border px-2 py-1 rounded componente-ship"/>
-        <select class="border px-2 py-1 rounded componente-status">
-          <option value="">Status</option>
-          <option value="NÃO INICIADO" ${comp.status === 'NÃO INICIADO' ? 'selected' : ''}>NÃO INICIADO</option>
-          <option value="EM ANDAMENTO" ${comp.status === 'EM ANDAMENTO' ? 'selected' : ''}>EM ANDAMENTO</option>
-          <option value="FINALIZADO" ${comp.status === 'FINALIZADO' ? 'selected' : ''}>FINALIZADO</option>
-        </select>
-        <button type="button" class="bg-red-500 text-white px-2 py-1 rounded text-sm remover-componente">
-          Remover
-        </button>
-      </div>
-    `;
-    
-    listaComponentes.appendChild(componenteDiv);
-    
-    // Evento para remover componente
-    componenteDiv.querySelector(".remover-componente").addEventListener("click", () => {
-      componenteDiv.remove();
-    });
-  });
-}
 
-async function processarArquivoForecast() {
-  const fileInput = document.getElementById('uploadForecast');
-  const file = fileInput.files[0];
-  
-  if (!file) {
-    alert('Por favor, selecione um arquivo JSON.');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const dados = JSON.parse(e.target.result);
-      
-      if (!Array.isArray(dados)) {
-        throw new Error('O arquivo deve conter um array de objetos.');
-      }
-
-      // Validar estrutura dos dados
-      const camposObrigatorios = ['partnumber', 'revisao', 'cliente'];
-      const mesesValidos = ['set', 'out', 'nov', 'dez', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago'];
-      
-      for (let i = 0; i < dados.length; i++) {
-        const item = dados[i];
-        
-        // Verificar campos obrigatórios
-        for (const campo of camposObrigatorios) {
-          if (!item.hasOwnProperty(campo)) {
-            throw new Error(`Item ${i + 1}: Campo obrigatório '${campo}' não encontrado.`);
-          }
-        }
-        
-        // Verificar se pelo menos um mês tem valor
-        const temMes = mesesValidos.some(mes => item.hasOwnProperty(mes) && !isNaN(item[mes]));
-        if (!temMes) {
-          throw new Error(`Item ${i + 1}: Nenhum valor de demanda mensal válido encontrado.`);
-        }
-      }
-
-      // Salvar no Firebase
-      await firebaseService.salvarForecast(dados);
-      
-      atualizarTabelaForecast(dados);
-      alert('Dados de forecast processados e salvos com sucesso!');
-      
-    } catch (error) {
-      alert('Erro ao processar arquivo: ' + error.message);
-    }
-  };
-  
-  reader.readAsText(file);
-}
-
-async function carregarForecastSalvo() {
-  try {
-    const forecasts = await firebaseService.getForecasts();
-    
-    if (forecasts.length > 0 && forecasts[0].dados) {
-      atualizarTabelaForecast(forecasts[0].dados);
-    } else {
-      // Manter mensagem padrão se não houver dados
-      const tbody = document.getElementById('tabelaForecast');
-      if (tbody) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="15" class="p-4 text-center text-gray-500">
-              Nenhum dado de forecast carregado. Faça upload de um arquivo JSON.
-            </td>
-          </tr>
-        `;
-      }
-    }
-  } catch (error) {
-    console.error('Erro ao carregar forecast:', error);
-  }
-}
-
-async function limparForecast() {
-  if (confirm('Tem certeza que deseja limpar todos os dados de forecast?')) {
-    try {
-      await firebaseService.limparForecast();
-      
-      const tbody = document.getElementById('tabelaForecast');
-      if (tbody) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="15" class="p-4 text-center text-gray-500">
-              Nenhum dado de forecast carregado. Faça upload de um arquivo JSON.
-            </td>
-          </tr>
-        `;
-      }
-      
-      alert('Dados de forecast limpos com sucesso!');
-    } catch (error) {
-      alert('Erro ao limpar dados: ' + error.message);
-    }
-  }
-}
-
-function atualizarTabelaForecast(dados) {
-  const tbody = document.getElementById('tabelaForecast');
-  
-  if (!tbody) return;
-  
-  tbody.innerHTML = '';
-  
-  dados.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.className = 'border-b hover:bg-gray-50';
-    
-    const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-    
-    tr.innerHTML = `
-      <td class="p-3 border">${item.partNumber || ''}</td>
-      <td class="p-3 border">${item.revisao || ''}</td>
-      <td class="p-3 border">${item.cliente || ''}</td>
-      ${meses.map(mes => `<td class="p-3 border text-center">${item[mes] || 0}</td>`).join('')}
-    `;
-    
-    tbody.appendChild(tr);
-  });
-}
 
 
 // ======== Funções auxiliares para componentes na edição ========
-function adicionarComponenteEdit(modal) {
-  const listaComponentes = modal.querySelector("#listaComponentesEdit");
-  const componenteId = Date.now(); // ID único baseado no timestamp
-  
-  const componenteDiv = document.createElement("div");
-  componenteDiv.className = "border rounded p-3 bg-gray-50";
-  componenteDiv.dataset.componenteId = componenteId;
-  
-  componenteDiv.innerHTML = `
-    <div class="grid grid-cols-2 gap-2">
-      <input type="text" placeholder="Part Number do Componente" class="border px-2 py-1 rounded componente-part-edit"/>
-      <input type="text" placeholder="Revisão" class="border px-2 py-1 rounded componente-revisao-edit"/>
-      <select class="border px-2 py-1 rounded componente-cliente-edit">
-        <option value="">Cliente</option>
-        <option value="VOLVO">VOLVO</option>
-        <option value="KOMATSU">KOMATSU</option>
-        <option value="JOHN DEERE">JOHN DEERE</option>
-        <option value="CATERPILLAR">CATERPILLAR</option>
-        <option value="KION">KION</option>
-        <option value="TOYOTA">TOYOTA</option>
-        <option value="CL CALDEIRARIA">CL CALDEIRARIA</option>
-      </select>
-      <select class="border px-2 py-1 rounded componente-complexidade-edit">
-        <option value="">Complexidade</option>
-        <option value="BAIXA">BAIXA</option>
-        <option value="MÉDIA">MÉDIA</option>
-        <option value="ALTA">ALTA</option>
-      </select>
-      <input type="text" placeholder="Data Entrada" class="border px-2 py-1 rounded componente-entrada-edit"/>
-      <input type="text" placeholder="Ship Date" class="border px-2 py-1 rounded componente-ship-edit"/>
-      <select class="border px-2 py-1 rounded componente-status-edit">
-        <option value="">Status</option>
-        <option value="NÃO INICIADO">NÃO INICIADO</option>
-        <option value="EM ANDAMENTO">EM ANDAMENTO</option>
-        <option value="FINALIZADO">FINALIZADO</option>
-      </select>
-      <button type="button" class="bg-red-500 text-white px-2 py-1 rounded text-sm remover-componente-edit">
-        Remover
-      </button>
-    </div>
-  `;
-  
-  listaComponentes.appendChild(componenteDiv);
-  
-  // Evento para remover componente
-  componenteDiv.querySelector(".remover-componente-edit").addEventListener("click", () => {
-    componenteDiv.remove();
-  });
+// helper para compatibilidade: adicionarComponenteEdit usa o mesmo mecanismo
+function adicionarComponenteEdit(modal, compVals) {
+  return adicionarComponente(modal, 'listaComponentesEdit', compVals);
 }
 
-function coletarComponentesEdit(modal) {
-  const componentesDivs = modal.querySelectorAll("#listaComponentesEdit > div");
-  const componentes = [];
-  
-  componentesDivs.forEach(div => {
-    const componente = {
-      id: div.dataset.componenteId,
-      partNumber: div.querySelector(".componente-part-edit").value,
-      revisao: div.querySelector(".componente-revisao-edit").value,
-      cliente: div.querySelector(".componente-cliente-edit").value,
-      complexidade: div.querySelector(".componente-complexidade-edit").value,
-      entrada: div.querySelector(".componente-entrada-edit").value,
-      shipDate: div.querySelector(".componente-ship-edit").value,
-      status: div.querySelector(".componente-status-edit").value
-    };
-    
-    if (componente.partNumber) { // Só adiciona se tiver part number
-      componentes.push(componente);
-    }
-  });
-  
-  return componentes;
-}
+
 
 function renderizarComponentesEdit(modal, componentes = []) {
   const listaComponentes = modal.querySelector("#listaComponentesEdit");
@@ -2536,29 +2255,4 @@ function renderizarComponentesEdit(modal, componentes = []) {
   });
 }
 
-
-function carregarComponentes(modal, containerId, componentes) {
-  const container = modal.querySelector(`#${containerId}`);
-  if (!container || !componentes || !Array.isArray(componentes)) return;
-  
-  // Limpar componentes existentes
-  container.innerHTML = '';
-  
-  // Adicionar cada componente
-  componentes.forEach(componente => {
-    adicionarComponente(modal, containerId);
-    
-    // Preencher os valores
-    const componenteDiv = container.lastElementChild;
-    if (componenteDiv) {
-      componenteDiv.querySelector('.componente-part').value = componente.partNumber || '';
-      componenteDiv.querySelector('.componente-revisao').value = componente.revisao || '';
-      componenteDiv.querySelector('.componente-cliente').value = componente.cliente || '';
-      componenteDiv.querySelector('.componente-complexidade').value = componente.complexidade || '';
-      componenteDiv.querySelector('.componente-entrada').value = componente.entrada || '';
-      componenteDiv.querySelector('.componente-ship').value = componente.shipDate || '';
-      componenteDiv.querySelector('.componente-status').value = componente.status || '';
-    }
-  });
-}
 
