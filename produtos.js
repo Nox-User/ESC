@@ -1303,6 +1303,10 @@ function abrirModalNovoProduto() {
           <option value="NÃO INICIADO">NÃO INICIADO</option>
           <option value="EM ANDAMENTO">EM ANDAMENTO</option>
           <option value="FINALIZADO">FINALIZADO</option>
+          <option value="PROCESSO DE USINAGEM">PROCESSO DE USINAGEM</option>
+          <option value="PROCESSO DE DOBRA">PROCESSO DE DOBRA</option>
+          <option value="PROCESSO DE CHANFRO">PROCESSO DE CHANFRO</option>
+          <option value="PROCESSO DE SOLDA">PROCESSO DE SOLDA</option>
         </select>
 
         <div class="col-span-2">
@@ -1377,7 +1381,7 @@ function abrirModalNovoProduto() {
       renderTabela(); // se essa função existir no escopo (mantive o nome original)
       graphData = agruparProdutosPorMes(produtosanuais);
       statusData = gerarStatusData(produtosanuais, year, month);
-      alert("Produto adicionado com sucesso!");
+      console.log("Produto adicionado com sucesso!");
     } catch (err) {
       console.error(err);
       alert("Erro ao adicionar produto.");
@@ -1431,6 +1435,10 @@ function editarProduto(produto) {
           <option value="NÃO INICIADO" ${produto["STATUS"] === "NÃO INICIADO" ? "selected" : ""}>NÃO INICIADO</option>
           <option value="EM ANDAMENTO" ${produto["STATUS"] === "EM ANDAMENTO" ? "selected" : ""}>EM ANDAMENTO</option>
           <option value="FINALIZADO" ${produto["STATUS"] === "FINALIZADO" ? "selected" : ""}>FINALIZADO</option>
+          <option value="PROCESSO DE USINAGEM" ${produto["STATUS"] === "PROCESSO DE USINAGEM" ? "selected" : ""}>PROCESSO DE USINAGEM</option>
+          <option value="PROCESSO DE DOBRA" ${produto["STATUS"] === "PROCESSO DE DOBRA" ? "selected" : ""}>PROCESSO DE DOBRA</option>
+          <option value="PROCESSO DE CHANFRO" ${produto["STATUS"] === "PROCESSO DE CHANFRO" ? "selected" : ""}>PROCESSO DE CHANFRO</option>
+          <option value="PROCESSO DE SOLDA" ${produto["STATUS"] === "PROCESSO DE SOLDA" ? "selected" : ""}>PROCESSO DE SOLDA</option>
         </select>
 
         <div class="col-span-2">
@@ -1507,7 +1515,7 @@ function editarProduto(produto) {
 
       modal.remove();
       renderTabela();
-      alert("Produto atualizado com sucesso!");
+      console.log("Produto atualizado com sucesso!");
     } catch (err) {
       console.error(err);
       alert("Erro ao atualizar produto.");
