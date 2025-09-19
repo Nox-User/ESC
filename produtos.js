@@ -1,4 +1,5 @@
 
+
 //--------HELP---------//
 
 //------INFORMAÇÕES DE DATA-------//
@@ -98,6 +99,7 @@ function bindFiltros(){
   const selectAno = document.getElementById("anos");
   const selectMes = document.getElementById("mes");
   if (!selectAno || !selectMes) return;
+  
 
   function atualizar(){
     const ano = selectAno.value ? parseInt(selectAno.value, 10) : null;
@@ -105,12 +107,11 @@ function bindFiltros(){
 
     graphData = agruparProdutosPorMes(produtosanuais, ano, mes);
     Graph(document.getElementById("graph"));  
-    AddComponent(document.getElementById("addComponent"), ano, mes);
+    AddComponent(document.getElementById("addComponent"), ano, mes); // <-- passa os dois
     Clientes(document.getElementById("clientes"), ano, mes);
     Satisfaction(document.getElementById("satisfaction"), ano, mes);
     statusData = gerarStatusData(produtosanuais, ano, mes);
 
-    // re-render cards
     const cards = document.getElementById("cards");
     if (cards) {
       cards.innerHTML = "";
@@ -165,8 +166,8 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
     const mes = parseInt(partes[1], 10);
     const ano = parseInt(partes[2], 10);
 
-    if (anoSelecionado && ano !== anoSelecionado) return;
-    if (mesSelecionado && mes !== mesSelecionado) return;
+    if (anoSelecionado !== null && ano !== anoSelecionado) return;
+    if (mesSelecionado !== null && mes !== mesSelecionado) return;
 
     const status = mapearStatus(p.STATUS || "").toUpperCase().trim();
     if (contagem.hasOwnProperty(status)) {
@@ -586,7 +587,7 @@ function Graph(mount){
               <span class="text-sm text-black">META</span>
             </div>
           </div>
-        </div>´
+        </div>
         <!-- Filtro de mês à direita -->
         <div class="ml-1">
           <label for="mes">Mês : </label>
@@ -639,139 +640,72 @@ function Graph(mount){
   }
   const svgWrap = $('#svgWrap', mount);
 
-  function renderSvg(){
-    const w = svgWrap.offsetWidth || 600;
-    const h = svgWrap.offsetHeight || 260;
-    const pad = {l:40, r:40, t:10, b:50};
-    const x0 = pad.l, x1 = w - pad.r, y0 = h - pad.b, y1 = pad.t;
+function renderSvg(){
+  const w = svgWrap.offsetWidth || 600;
+  const h = svgWrap.offsetHeight || 260;
+  const pad = {l:40, r:40, t:10, b:50};
+  const x0 = pad.l, x1 = w - pad.r, y0 = h - pad.b, y1 = pad.t;
 
-    const xs = (i)=> map(i, 0, graphData.length-1, x0, x1);
-    const maxY = Math.max(1, ...graphData.map(d=>Math.max(d.produtos,d.finalizados,d.meta))) * 1.12;
-    const ys = (v)=> map(v, 0, maxY, y0, y1);
+  const xs = (i)=> map(i, 0, graphData.length-1, x0, x1);
+  const maxY = Math.max(1, ...graphData.map(d=>Math.max(d.produtos,d.finalizados,d.meta))) * 1.12;
+  const ys = (v)=> map(v, 0, maxY, y0, y1);
 
-    const xTicks = graphData.map((d,i)=>({x: xs(i), label:d.name}));
+  const xTicks = graphData.map((d,i)=>({x: xs(i), label:d.name}));
 
-    // cria ticks no eixo Y (ex: 5 divisões)
-    const nYTicks = 5;
-    const yTicks = [];
-    for(let i=0;i<=nYTicks;i++){
-      const v = (maxY/nYTicks) * i;
-      yTicks.push({y: ys(v), label: Math.round(v)});
-    }
-
-    function getSmoothPath(data, xs, ys, suavização = 0.5) {
-      if (!data.length) return '';
-      let d = `M ${xs(0)} ${ys(data[0])}`;
-      for (let i = 1; i < data.length; i++) {
-        const x0 = xs(i-1), y0 = ys(data[i-1]);
-        const x1 = xs(i), y1 = ys(data[i]);
-        const cx = (x0 + x1) * suavização;
-        d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
-      }
-      return d;
-    }
-
-    const pathFinalizados = getSmoothPath(graphData.map(d=>d.finalizados), xs, ys);
-    const pathMeta = getSmoothPath(graphData.map(d=>d.meta), xs, ys);
-
-    const pointsFinalizados = graphData.map((d,i)=>`
-      <circle cx="${xs(i)}" cy="${ys(d.finalizados)}" r="6" fill="transparent" class="point"
-        data-type="PPAP's Finalizados" data-label="${d.name}" data-value="${d.finalizados}" />
-    `).join('');
-
-    const pointsMeta = graphData.map((d,i)=>`
-      <circle cx="${xs(i)}" cy="${ys(d.meta)}" r="6" fill="transparent" class="point"
-        data-type="Meta" data-label="${d.name}" data-value="${d.meta}" />
-    `).join('');
-
-    svgWrap.style.position = "relative"; // garante que o tooltip posicione certo
-
-    svgWrap.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <!-- grid vertical -->
-        ${xTicks.map(t=>`<line x1="${t.x}" x2="${t.x}" y1="${y1}" y2="${y0}" stroke="#ffffffff" stroke-width="6"/>`).join('')}
-        <!-- grid horizontal -->
-        ${yTicks.map(t=>`<line x1="${x0}" x2="${x1}" y1="${t.y}" y2="${t.y}" stroke="#a5a5a5ff" stroke-width="0,5"/>`).join('')}
-        <!-- eixo X labels -->
-        ${xTicks.map(t=>`<text x="${t.x}" y="${y0 + 20}" text-anchor="middle" font-size="12" fill="#000000ff">${t.label}</text>`).join('')}
-        
-        <!-- Barras -->
-        ${graphData.map((d,i)=>`
-          <rect x="${xs(i)-10}" y="${ys(d.produtos)}" width="20" height="${y0 - ys(d.produtos)}" fill="#4472C4"
-            data-type="PPAP's Total" data-label="${d.name}" data-value="${d.produtos}"/>
-        `).join('')}
-        
-        <!-- Linha finalizados -->
-        <path d="${pathFinalizados}" fill="none" stroke="#ED7D31" stroke-width="3"/>
-        ${pointsFinalizados}
-
-        <!-- Linha meta fixa -->
-        <path d="${pathMeta}" fill="none" stroke="#ff0000ff" stroke-dasharray="6,3" stroke-width="2"/>
-        ${pointsMeta}  
-
-        </svg>
-        <!-- Tooltip customizado -->
-        <div id="tooltip" style="position:absolute; pointer-events:none; display:none; z-index:10; white-space:nowrap;">
-          <div class="rounded-xl overflow-hidden bg-gray-800 shadow-lg">
-            <div class="tooltip-body text-center p-3">
-              <div class="text-white font-bold text-sm" id="tooltip-value">$0</div>
-              <div class="text-gray-300 text-xs" id="tooltip-label">Detalhe</div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      const svg = svgWrap.querySelector("svg");
-      const tooltip = svgWrap.querySelector("#tooltip");
-
-      // ativa tooltip só nas barras (sem pontos visíveis)
-      const points = svg.querySelectorAll("circle.point");
-      const bars = svg.querySelectorAll("rect");
-
-      // Apenas os pontos ficam visíveis ao passar o mouse
-      svg.addEventListener("mousemove", e => {
-          let nearest = null;
-          let minDist = Infinity;
-          points.forEach(pt => {
-              const cx = parseFloat(pt.getAttribute("cx"));
-              const cy = parseFloat(pt.getAttribute("cy"));
-              const dx = e.offsetX - cx;
-              const dy = e.offsetY - cy;
-              const dist = Math.sqrt(dx*dx + dy*dy);
-              if (dist < minDist) {
-                  minDist = dist;
-                  nearest = pt;
-              }
-              pt.setAttribute("fill", "transparent"); // reset todos pontos
-          });
-
-          if (nearest && minDist < 20) { // só trava se o mouse estiver próximo
-              nearest.setAttribute("fill", "#ff8800ff"); // ponto visível
-              tooltip.style.display = "block";
-              tooltip.style.left = (parseFloat(nearest.getAttribute("cx")) + 15) + "px";
-              tooltip.style.top = (parseFloat(nearest.getAttribute("cy")) - 30) + "px";
-              tooltip.querySelector("#tooltip-value").innerText = nearest.dataset.value;
-              tooltip.querySelector("#tooltip-label").innerText = `${nearest.dataset.type} em ${nearest.dataset.label}`;
-          } else {
-              tooltip.style.display = "none";
-          }
-      });
-
-      // As barras mantêm a cor original
-      bars.forEach(bar => {
-          bar.addEventListener("mousemove", e => {
-              e.stopPropagation(); // importante! impede que o SVG trate o mouse
-              tooltip.style.display = "block";
-              tooltip.style.left = (e.offsetX + 15) + "px";
-              tooltip.style.top = (e.offsetY - 30) + "px";
-              tooltip.querySelector("#tooltip-value").innerText = bar.dataset.value;
-              tooltip.querySelector("#tooltip-label").innerText = `${bar.dataset.type} em ${bar.dataset.label}`;
-          });
-          bar.addEventListener("mouseleave", e => {
-              tooltip.style.display = "none";
-          });
-      });
+  // cria ticks no eixo Y (ex: 5 divisões)
+  const nYTicks = 5;
+  const yTicks = [];
+  for(let i=0;i<=nYTicks;i++){
+    const v = (maxY/nYTicks) * i;
+    yTicks.push({y: ys(v), label: Math.round(v)});
   }
+
+  function getSmoothPath(data, xs, ys, suavização = 0.5) {
+    if (!data.length) return '';
+    let d = `M ${xs(0)} ${ys(data[0])}`;
+    for (let i = 1; i < data.length; i++) {
+      const x0 = xs(i-1), y0 = ys(data[i-1]);
+      const x1 = xs(i), y1 = ys(data[i]);
+      const cx = (x0 + x1) * suavização;
+      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+    }
+    return d;
+  }
+
+  const pathFinalizados = getSmoothPath(graphData.map(d=>d.finalizados), xs, ys);
+  const pathMeta = getSmoothPath(graphData.map(d=>d.meta), xs, ys);
+
+  svgWrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <!-- grid vertical -->
+      ${xTicks.map(t=>`<line x1="${t.x}" x2="${t.x}" y1="${y1}" y2="${y0}" stroke="#ffffffff" stroke-width="6"/>`).join('')}
+      <!-- grid horizontal -->
+      ${yTicks.map(t=>`<line x1="${x0}" x2="${x1}" y1="${t.y}" y2="${t.y}" stroke="#a5a5a5ff" stroke-width="0.5"/>`).join('')}
+      <!-- eixo X labels -->
+      ${xTicks.map(t=>`<text x="${t.x}" y="${y0 + 20}" text-anchor="middle" font-size="12" fill="#000">${t.label}</text>`).join('')}
+      
+      <!-- Barras (TOTAL) -->
+      ${graphData.map((d,i)=>`
+        <rect x="${xs(i)-10}" y="${ys(d.produtos)}" width="20" height="${y0 - ys(d.produtos)}" fill="#4472C4"/>
+        ${d.produtos > 0 ? `<text x="${xs(i)}" y="${ys(d.produtos) - 8}" text-anchor="middle" font-size="15" fill="#4472C4">${d.produtos}</text>` : ""}
+      `).join('')}
+      
+      <!-- Linha finalizados -->
+      <path d="${pathFinalizados}" fill="none" stroke="#ED7D31" stroke-width="3"/>
+      ${graphData.map((d,i)=> d.finalizados > 0 ? `
+        <text x="${xs(i) + 12}" y="${ys(d.finalizados) - 5}" text-anchor="start" font-size="15" fill="#ED7D31">${d.finalizados}</text>
+      ` : "").join('')}
+
+      <!-- Linha meta fixa -->
+      <path d="${pathMeta}" fill="none" stroke="#ff0000" stroke-dasharray="6,3" stroke-width="1"/>
+      ${graphData.map((d,i)=> d.finalizados > 0 ? `
+        <text x="${xs(i)}" y="${ys(d.meta) + 15}" text-anchor="middle" font-size="12" fill="#ff0000">${d.meta}</text>
+      ` : "").join('')}
+    </svg>
+  `;
+}
+
+
 
   renderSvg();
   bindFiltros();
@@ -970,9 +904,9 @@ function Satisfaction(mount, anoSelecionado, mesSelecionado){
       </div>
       <div class="mt-3">Índice de Finalização de Amostras:</div>
       <div class="flex justify-center"><svg viewBox="0 0 700 380" fill="none" width="300" xmlns="http://www.w3.org/2000/svg">
-        <path d="M100 350C100 283.696 126.339 220.107 173.223 173.223C220.107 126.339 283.696 100 350 100C416.304 100 479.893 126.339 526.777 173.223C573.661 220.107 600 283.696 600 350" stroke="#2d2d2d" stroke-width="40" stroke-linecap="round"/>
+        <path d="M100 350C100 283.696 126.339 220.107 173.223 173.223C220.107 126.339 283.696 100 350 100C416.304 100 479.893 126.339 526.777 173.223C573.661 220.107 600 283.696 600 350" stroke="#d43f11ff" stroke-width="40" stroke-linecap="round"/>
         <path id="satPath" d="M100 350C100 283.696 126.339 220.107 173.223 173.223C220.107 126.339 283.696 100 350 100C416.304 100 479.893 126.339 526.777 173.223C573.661 220.107 600 283.696 600 350" stroke="#2f49d0" stroke-width="40" stroke-linecap="round" stroke-dasharray="785.4" stroke-dashoffset="785.4"/>
-        <circle id="satDot" cx="140" cy="350" r="12" fill="#fff"/>
+        <circle id="satDot" cx="140" cy="350" r="12"/>
       </svg></div>
       <div class="flex justify-center">
         <div class="flex justify-between mt-2" style="width:300px">
@@ -1006,14 +940,15 @@ function Satisfaction(mount, anoSelecionado, mesSelecionado){
 }
 
 
-  function AddComponent(mount, anoSelecionado){
+  function AddComponent(mount, anoSelecionado, mesSelecionado){
     // calcula total de produtos filtrados pelo ano
-    const dados = agruparProdutosPorMes(produtosanuais, anoSelecionado);
+    const dados = agruparProdutosPorMes(produtosanuais, anoSelecionado, mesSelecionado);
     const totalProdutos = dados.reduce((soma, d) => soma + d.produtos, 0);
 
-    const totalFuncionarios = 22;
+    const totalFuncionarios = 6;
     const ncPermitido = Math.round(totalProdutos * 0.005); // 0,5%
-    const ncReal = 2;
+    const ncReal = Math.round(ncPermitido * 0.5);
+    console.log("Dados de NC",ncReal);
 
     mount.innerHTML = `
       <div class="p-4 h-full flex flex-col shadow-lg">
@@ -1157,6 +1092,7 @@ function ProdutosPage(mount){
               <th class="p-3">Cliente</th>
               <th class="p-3">Entrada</th>
               <th class="p-3">Ship Date</th>
+              <th class="p-3">Dias Atraso</th> <!-- NOVA COLUNA -->
               <th class="p-3">Status</th>
               <th class="p-3">Ações</th>
             </tr>
@@ -1197,12 +1133,17 @@ function ProdutosPage(mount){
       // 🔸 4. Filtro por intervalo de datas
       const data = p["ENTRADA"] || p["SHIP DATE"];
       if (data) {
-        const [dia, mes, ano] = data.split("/");
-        const dataProduto = new Date(`${ano}-${mes}-${dia}`);
-
-        if (dataInicio) {
-          const inicio = new Date(dataInicio);
-          if (dataProduto < inicio) return false;
+        const partes = data.split("/");
+        if (partes.length === 3) {
+          const dia = partes[0].padStart(2,"0");
+          const mes = partes[1].padStart(2,"0");
+          const ano = partes[2];
+          const dataProduto = new Date(ano, parseInt(mes,10)-1, parseInt(dia,10));
+          if (dataInicio) {
+            const inicio = new Date(dataInicio);
+            inicio.setHours(0,0,0,0);
+            if (dataProduto < inicio) return false;
+          }
         }
       }
       return true;
@@ -1210,6 +1151,34 @@ function ProdutosPage(mount){
 
     // Renderiza os produtos filtrados
     filtrados.forEach((p) => {
+      const originalStatus = p["STATUS"] || "";
+      let displayStatus = originalStatus;
+      let diasAtraso = null;
+
+      // calcula se está atrasado com base no SHIP DATE (formato dd/mm/yyyy)
+      if (p["SHIP DATE"]) {
+        const partes = (p["SHIP DATE"] || "").split("/");
+        if (partes.length === 3) {
+          const d = parseInt(partes[0], 10);
+          const m = parseInt(partes[1], 10);
+          const a = parseInt(partes[2], 10);
+          if (!isNaN(d) && !isNaN(m) && !isNaN(a)) {
+            const dataShip = new Date(a, m-1, d);
+            const hoje = new Date();
+            // neutraliza horas para comparação só por dia
+            dataShip.setHours(0,0,0,0);
+            hoje.setHours(0,0,0,0);
+
+            // se ship < hoje e não finalizado => ATRASADO
+            if (dataShip < hoje && !originalStatus.toUpperCase().includes("FINALIZADO")) {
+              displayStatus = "ATRASADO";
+              const diffMs = hoje.getTime() - dataShip.getTime();
+              diasAtraso = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            }
+          }
+        }
+      }
+
       const tr = document.createElement("tr");
       tr.className = "border-b hover:bg-gray-50";
       tr.innerHTML = `
@@ -1217,7 +1186,8 @@ function ProdutosPage(mount){
         <td class="p-2">${p["CLIENTE"] || ""}</td>
         <td class="p-2">${p["ENTRADA"] || ""}</td>
         <td class="p-2">${p["SHIP DATE"] || ""}</td>
-        <td class="p-2">${renderStatusBadge(p["STATUS"])}</td>
+        <td class="p-2 text-right">${diasAtraso ? diasAtraso + 'd' : '-'}</td>
+        <td class="p-2">${renderStatusBadge(displayStatus)}</td>
         <td class="p-2">
           <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm editarProduto">Editar</button>
           <button class="bg-gray-600 text-white px-2 py-1 rounded text-sm visualizarProduto">Visualizar</button>
@@ -1225,11 +1195,12 @@ function ProdutosPage(mount){
       `;
       tabela.appendChild(tr);
 
-      // passa o produto inteiro
+      // mantém o comportamento de editar/visualizar
       tr.querySelector(".editarProduto").addEventListener("click", () => editarProduto(p));
       tr.querySelector(".visualizarProduto").addEventListener("click", () => visualizarProduto(p));
     });
   }
+
 
 
   // filtro em tempo real
@@ -1245,20 +1216,23 @@ function ProdutosPage(mount){
 
   renderTabela();
 
-  function renderStatusBadge(status) {
+function renderStatusBadge(status) {
   const s = (status || "").toUpperCase();
   let cor = "bg-gray-400 text-white";
+
   if (s.includes("FINALIZADO")) cor = "bg-green-500 text-white";
-  else if (s.includes("ANDAMENTO")) cor = "bg-blue-500 text-white";
+  else if (s.includes("EM ANDAMENTO") || s.includes("ANDAMENTO") || s.includes("PROCESSO")) cor = "bg-blue-500 text-white";
   else if (s.includes("NÃO INICIADO") || s.includes("NAO INICIADO")) cor = "bg-gray-500 text-white";
   else if (s.includes("PROCESSO DE USINAGEM")) cor = "bg-blue-500 text-white";
   else if (s.includes("PROCESSO DE DOBRA")) cor = "bg-purple-500 text-white";
   else if (s.includes("PROCESSO DE CHANFRO")) cor = "bg-orange-500 text-white";
   else if (s.includes("PROCESSO DE SOLDA")) cor = "bg-yellow-500 text-white";
+  else if (s.includes("ATRASADO")) cor = "bg-red-600 text-white"; // novo
   else cor = "bg-red-500 text-white"; // status desconhecido
 
   return `<span class="px-2 py-1 rounded text-xs font-bold ${cor}">${status}</span>`;
-  }
+}
+
 
 function abrirModalNovoProduto() {
   let modal = document.getElementById("modal-novo-produto");
@@ -1792,34 +1766,36 @@ function GraficosPage(mount) {
         labels: Object.keys(complexidades),
         datasets: [{
           data: Object.values(complexidades),
-          backgroundColor: [
-            '#10B981', // Verde para BAIXA
-            '#F59E0B', // Amarelo para MÉDIA
-            '#EF4444', // Vermelho para ALTA
-            '#6B7280'  // Cinza para NÃO DEFINIDA
-          ],
+          backgroundColor: ['#10B981','#F59E0B','#EF4444','#6B7280'],
           borderWidth: 2,
           borderColor: '#ffffff'
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'bottom'
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
           },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((context.parsed / total) * 100).toFixed(1);
-                return `${context.label}: ${context.parsed} (${percentage}%)`;
-              }
+          tooltip: { enabled: true },
+          datalabels: {
+            color: '#fff',
+            font: { weight: 'bold', size: 13 },
+            formatter: (value, ctx) => {
+              const total = ctx.chart.data.datasets[0].data
+                .reduce((a, b) => a + b, 0);
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              // mostra só se > 0
+              return value > 0 ? `${value}\n(${perc}%)` : '';
             }
           }
         }
       }
+          ,
+      plugins: [ChartDataLabels] // precisa registrar
     });
   }
 
@@ -1884,29 +1860,20 @@ function GraficosPage(mount) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1
-            }
-          },
-          x: {
-            ticks: {
-              maxRotation: 45
-            }
-          }
-        },
+        scales: { y: { beginAtZero: true } },
         plugins: {
-          legend: {
-            position: 'top'
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false
+          legend: { display: false },
+          tooltip: { enabled: true },
+          datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: '#000',
+            font: { weight: 'bold', size: 12 },
+            formatter: value => value > 0 ? value : ''
           }
         }
-      }
+      },
+      plugins: [ChartDataLabels]
     });
   }
 }
