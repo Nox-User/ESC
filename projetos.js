@@ -104,6 +104,7 @@ function Sidebar({ mount }) {
       { id: '1', title: 'Lista de Projetos', notifications: false },
       { id: '2', title: 'Relatórios', notifications: false },
       { id: '3', title: 'OFR - Gráficos', notifications: false },
+      { id: '8', title: 'Controle de Atividade', notifications: false },
       { id: '4', title: 'Lista de OFR', notifications: false },
     ],
     [
@@ -173,7 +174,11 @@ function Sidebar({ mount }) {
           renderListaOFR(content);      // Lista de OFR
         } else if (selected === '7') {
           renderConfiguracoes(content);
-        } else {
+        } else if (selected === '8') {
+          import('./controleAtividade.js').then(module => {
+            module.renderControleAtividade();
+          });
+        }else {
           renderMainContent();
           atualizarDashboard();
           renderizarGraficos();
@@ -203,6 +208,7 @@ function Sidebar({ mount }) {
       5: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`,
       6: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>`,
       7: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>`,
+      8: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" clip-rule="evenodd"></path></svg>`,
     };
     return icons[id] || '';
   }
@@ -290,12 +296,12 @@ function renderMainContent() {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Status dos Projetos</h3>
-          <canvas id="statusChart" width="400" height="200"></canvas>
+          <canvas id="statusChart"></canvas>
         </div>
         
         <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Projetos por Mês</h3>
-          <canvas id="monthChart" width="400" height="200"></canvas>
+          <canvas id="monthChart"></canvas>
         </div>
       </div>
 
@@ -303,12 +309,12 @@ function renderMainContent() {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Complexidade dos Projetos</h3>
-          <canvas id="complexidadeChart" width="400" height="200"></canvas>
+          <canvas id="complexidadeChart"></canvas>
         </div>
         
         <div class="rounded-lg bg-card-content p-4 shadow-lg">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Projetos por Pilar</h3>
-          <canvas id="pilaresChart" width="400" height="200"></canvas>
+          <canvas id="pilaresChart"></canvas>
         </div>
       </div>
     </div>
@@ -645,10 +651,33 @@ function renderizarGraficos() {
   statusChartInstance = new Chart(statusCtx, {
     type: 'doughnut',
     data: statusData,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+      options: {
+        responsive: true,
+        maintainAspectRatio: true, 
+        aspectRatio: 1, 
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          tooltip: { enabled: true },
+          datalabels: {
+            color: '#000000ff',
+            font: { weight: 'bold', size: 13 },
+            formatter: (value, ctx) => {
+              const total = ctx.chart.data.datasets[0].data
+                .reduce((a, b) => a + b, 0);
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              // mostra só se > 0
+              return value > 0 ? `${value}\n(${perc}%)` : '';
+            }
+          }
+        }
+      }
+          ,
+      plugins: [ChartDataLabels] // precisa registrar
   });
 
   // Gráfico por Mês
@@ -665,15 +694,33 @@ function renderizarGraficos() {
         backgroundColor: '#3B82F6'
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
+      options: {
+        responsive: true,
+        maintainAspectRatio: true, 
+        aspectRatio: 1, 
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          tooltip: { enabled: true },
+          datalabels: {
+            color: '#000000ff',
+            font: { weight: 'bold', size: 13 },
+            formatter: (value, ctx) => {
+              const total = ctx.chart.data.datasets[0].data
+                .reduce((a, b) => a + b, 0);
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              // mostra só se > 0
+              return value > 0 ? `${value}\n(${perc}%)` : '';
+            }
+          }
         }
       }
-    }
+          ,
+      plugins: [ChartDataLabels] // precisa registrar
   });
 
   // Gráfico de Complexidade
@@ -689,10 +736,33 @@ function renderizarGraficos() {
         backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444']
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
+      options: {
+        responsive: true,
+        maintainAspectRatio: true, 
+        aspectRatio: 1, 
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          tooltip: { enabled: true },
+          datalabels: {
+            color: '#000000ff',
+            font: { weight: 'bold', size: 13 },
+            formatter: (value, ctx) => {
+              const total = ctx.chart.data.datasets[0].data
+                .reduce((a, b) => a + b, 0);
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              // mostra só se > 0
+              return value > 0 ? `${value}\n(${perc}%)` : '';
+            }
+          }
+        }
+      }
+          ,
+      plugins: [ChartDataLabels] // precisa registrar
   });
 
   // Gráfico de Pilares
@@ -709,15 +779,33 @@ function renderizarGraficos() {
         backgroundColor: ['#8B5CF6', '#06B6D4', '#84CC16', '#F59E0B']
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
+      options: {
+        responsive: true,
+        maintainAspectRatio: true, 
+        aspectRatio: 1, 
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          tooltip: { enabled: true },
+          datalabels: {
+            color: '#000000ff',
+            font: { weight: 'bold', size: 13 },
+            formatter: (value, ctx) => {
+              const total = ctx.chart.data.datasets[0].data
+                .reduce((a, b) => a + b, 0);
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              // mostra só se > 0
+              return value > 0 ? `${value}\n(${perc}%)` : '';
+            }
+          }
         }
       }
-    }
+          ,
+      plugins: [ChartDataLabels] // precisa registrar
   });
 }
 
