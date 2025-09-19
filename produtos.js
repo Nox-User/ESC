@@ -1653,7 +1653,7 @@ function GraficosPage(mount) {
         <!-- Gráfico de Complexidade -->
         <div class="bg-white rounded-lg shadow-lg p-6">
           <h3 class="text-lg font-bold mb-4">Distribuição por Complexidade</h3>
-          <canvas id="graficoComplexidade" width="400" height="300"></canvas>
+          <canvas id="graficoComplexidade"></canvas>
         </div>
 
         <!-- Gráfico Blank x Conjunto por Cliente -->
@@ -1773,6 +1773,8 @@ function GraficosPage(mount) {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: true, 
+        aspectRatio: 1, 
         plugins: {
           legend: {
             position: 'bottom',
