@@ -6,22 +6,22 @@
 const now = new Date();
 const month = now.toLocaleString('default', { month: 'long' }).toUpperCase();
 const monthnumber = now.getMonth() + 1;
-const year = now.getFullYear(); 
+const year = now.getFullYear();
 const day = now.getDate();
 
 
-const $ = (sel, ctx=document) => ctx.querySelector(sel);
-const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 const clsx = (...parts) => parts.filter(Boolean).join(' ');
 const map = (value, sMin, sMax, dMin, dMax) => dMin + ((value - sMin) / (sMax - sMin)) * (dMax - dMin);
 
-function animateValue({from=0, to=1, duration=800, onUpdate, easing=(t)=>t, onComplete}){
+function animateValue({ from = 0, to = 1, duration = 800, onUpdate, easing = (t) => t, onComplete }) {
   const start = performance.now();
-  function frame(now){
-    const p = Math.min(1, (now-start)/duration);
-    const v = from + (to-from)*easing(p);
+  function frame(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const v = from + (to - from) * easing(p);
     onUpdate && onUpdate(v);
-    if(p < 1){ requestAnimationFrame(frame); } else { onComplete && onComplete(); }
+    if (p < 1) { requestAnimationFrame(frame); } else { onComplete && onComplete(); }
   }
   requestAnimationFrame(frame);
 }
@@ -30,7 +30,7 @@ function animateValue({from=0, to=1, duration=800, onUpdate, easing=(t)=>t, onCo
 
 // ========= Gráfico ========
 function agruparProdutosPorMes(produtos, anos, mesSelecionado) {
-  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
   const resultado = meses.map((m) => ({
     name: m,
@@ -76,14 +76,14 @@ export async function carregarDadosFirebase() {
     console.log("Carregando dados do Firebase...");
     produtosanuais = await firebaseService.getProdutos();
     console.log("Produtos carregados do Firebase:", produtosanuais);
-    
+
     graphData = agruparProdutosPorMes(produtosanuais);
     console.log("Dados do gráfico:", graphData);
-    
+
     statusData = gerarStatusData(produtosanuais, year, month);
     console.log("Dados do Card:", statusData);
-    
-    // inicia a aplicação só depois dos dados carregados
+
+    // inicia a aplicação
     App();
     bindFiltros();
   } catch (error) {
@@ -95,18 +95,18 @@ export async function carregarDadosFirebase() {
 // Inicializar carregamento dos dados
 
 
-function bindFiltros(){
+function bindFiltros() {
   const selectAno = document.getElementById("anos");
   const selectMes = document.getElementById("mes");
   if (!selectAno || !selectMes) return;
-  
 
-  function atualizar(){
+
+  function atualizar() {
     const ano = selectAno.value ? parseInt(selectAno.value, 10) : null;
     const mes = selectMes.value ? parseInt(selectMes.value, 10) : null;
 
     graphData = agruparProdutosPorMes(produtosanuais, ano, mes);
-    Graph(document.getElementById("graph"));  
+    Graph(document.getElementById("graph"));
     AddComponent(document.getElementById("addComponent"), ano, mes); // <-- passa os dois
     Clientes(document.getElementById("clientes"), ano, mes);
     Satisfaction(document.getElementById("satisfaction"), ano, mes);
@@ -123,13 +123,13 @@ function bindFiltros(){
   selectMes.addEventListener("change", atualizar);
 }
 
- 
+
 
 function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
   const statusBase = [
-    { id: 1, name: 'NÃO INICIADO', position: "Quantidade de PPAP's não iniciados"},
-    { id: 2, name: 'EM ANDAMENTO', position: "Quantidade de PPAP's em andamento"},
-    { id: 3, name: 'FINALIZADO', position: "Quantidade de PPAP's finalizados"},
+    { id: 1, name: 'NÃO INICIADO', position: "Quantidade de PPAP's não iniciados" },
+    { id: 2, name: 'EM ANDAMENTO', position: "Quantidade de PPAP's em andamento" },
+    { id: 3, name: 'FINALIZADO', position: "Quantidade de PPAP's finalizados" },
   ];
 
   const contagem = {
@@ -138,21 +138,21 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
     "FINALIZADO": 0
   };
 
-    // função auxiliar → remove acentos e padroniza
+  // função auxiliar
   function normalizarStatus(status) {
     return status
       .toUpperCase()
-      .normalize("NFD")                 // separa acentos
-      .replace(/[\u0300-\u036f]/g, "") // remove acentos
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .trim();
   }
 
-  // mapeia diferentes formas para o mesmo status
+  // diferentes formas para o mesmo status
   function mapearStatus(status) {
     const s = normalizarStatus(status);
     if (s === "NAO INICIADO") return "NÃO INICIADO";
-    if (s === "EM DESENVOLVIMENTO"  || s === "PROCESSO DE DOBRA" || s === "EM ANDAMENTO" ||
-        s === "PROCESSO DE CHANFRO" || s === "PROCESSO DE SOLDA" || s === "PROCESSO DE USINAGEM") return "EM ANDAMENTO";
+    if (s === "EM DESENVOLVIMENTO" || s === "PROCESSO DE DOBRA" || s === "EM ANDAMENTO" ||
+      s === "PROCESSO DE CHANFRO" || s === "PROCESSO DE SOLDA" || s === "PROCESSO DE USINAGEM") return "EM ANDAMENTO";
     if (s === "FINALIZADO") return "FINALIZADO";
     return null;
   }
@@ -182,10 +182,10 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
   }));
 }
 
-  // ======== montagem ========
-  function App(){
-    const root = document.getElementById('root');
-    root.innerHTML = `
+// ======== montagem ========
+function App() {
+  const root = document.getElementById('root');
+  root.innerHTML = `
     <div class="flex bg-gray-50">
       <aside id="sidebar" class="fixed inset-y-0 left-0 bg-white w-full sm:w-20 xl:w-60 sm:flex flex-col z-10 hidden shadow-lg"></aside>
       <main class="flex w-full">
@@ -193,30 +193,30 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
         <div id="content" class="h-screen flex-grow overflow-x-hidden overflow-auto flex flex-wrap content-start p-2"></div>
       </main>
     </div>`;
-    Sidebar({ mount: $('#sidebar') });
-    Content({ mount: $('#content') });
-  }
+  Sidebar({ mount: $('#sidebar') });
+  Content({ mount: $('#content') });
+}
 
-  // ======== Sidebar ========
-  function Sidebar({ mount }){
-    let selected = '0';
-    let showSidebar = false;
-    const sidebarItems = [
-      [
-        { id: '0', title: 'Dashboard', notifications: false },
-        { id: '1', title: 'Lista de Produtos', notifications: false },
-        { id: '2', title: 'Gráficos', notifications: false },
-        { id: '3', title: 'ForeCast', notifications: false },
-      ],
-      [
-        { id: '4', title: 'Ajuda', notifications: false },
-        { id: '5', title: 'Suporte', notifications: false },
-        { id: '6', title: 'Configurações', notifications: false },
-      ],
-    ];
+// ======== Sidebar ========
+function Sidebar({ mount }) {
+  let selected = '0';
+  let showSidebar = false;
+  const sidebarItems = [
+    [
+      { id: '0', title: 'Dashboard', notifications: false },
+      { id: '1', title: 'Lista de Produtos', notifications: false },
+      { id: '2', title: 'Gráficos', notifications: false },
+      { id: '3', title: 'ForeCast', notifications: false },
+    ],
+    [
+      { id: '4', title: 'Ajuda', notifications: false },
+      { id: '5', title: 'Suporte', notifications: false },
+      { id: '6', title: 'Configurações', notifications: false },
+    ],
+  ];
 
-    function render(){
-      mount.innerHTML = `
+  function render() {
+    mount.innerHTML = `
       <div class="flex-shrink-0 overflow-hidden p-2 mt-12">
         <div class="flex items-center h-full sm:justify-center xl:justify-start p-2 border-b border-gray-200">
           <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -257,33 +257,33 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
       </div>
     `;
 
-      // bind clicks
-      $$('.js-menu').forEach(el=>{
-        el.addEventListener('click', ()=>{
-          selected = el.dataset.id;
-          render();
+    // bind clicks
+    $$('.js-menu').forEach(el => {
+      el.addEventListener('click', () => {
+        selected = el.dataset.id;
+        render();
 
-          const content = document.getElementById("content");
+        const content = document.getElementById("content");
 
-          if (selected === '1') {
-            // carrega a página de produtos
-            ProdutosPage(content);
-          } else if (selected === '2') {
-            // carrega a página de gráficos
-            GraficosPage(content);
-          } else if (selected === '3') {
-            // carrega a página de forecast
-            ForecastPage(content);
-          } else {
-            // carrega o dashboard normal
-            Content({ mount: content });
-          }
-        });
+        if (selected === '1') {
+          // carrega a página de produtos
+          ProdutosPage(content);
+        } else if (selected === '2') {
+          // carrega a página de gráficos
+          GraficosPage(content);
+        } else if (selected === '3') {
+          // carrega a página de forecast
+          ForecastPage(content);
+        } else {
+          // carrega o dashboard normal
+          Content({ mount: content });
+        }
       });
-    }
+    });
+  }
 
-    function MenuItem({ item:{id,title,notifications}, selected }){
-      return `
+  function MenuItem({ item: { id, title, notifications }, selected }) {
+    return `
         <div data-id="${id}" class="js-menu w-full mt-2 flex items-center px-3 sm:px-0 xl:px-3 justify-start sm:justify-center xl:justify-start sm:mt-6 xl:mt-3 cursor-pointer rounded-lg transition-colors ${selected === id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'} py-2">
           ${SidebarIcon(id)}
           <div class="block sm:hidden xl:block ml-3 font-medium">${title}</div>
@@ -291,59 +291,66 @@ function gerarStatusData(produtos, anoSelecionado, mesSelecionado) {
           ${notifications ? `<div class='flex sm:hidden xl:flex bg-red-500 w-5 h-5 items-center justify-center rounded-full mr-2'><div class='text-white text-xs'>${notifications}</div></div>` : ''}
         </div>
       `;
-    }
- 
-    // util icons/images
-    function SidebarIcon(id){
-      const map={
-        0: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path></svg>`,
-        1: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" clip-rule="evenodd"></path></svg>`,
-        2: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
-        3: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
-        4: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`,
-        5: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>`,
-        6:`<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>`,
-      };
-      return map[id] ?? '';
-    }
-
-    window.__onSidebarHide = () => {
-      $('#sidebar').classList.add('hidden');
-    };
-    window.__onSidebarOpen = () => {
-      $('#sidebar').classList.remove('hidden');
-    };
-    window.__onSidebarToggle = () => {
-      const sidebar = $('#sidebar');
-      sidebar.classList.toggle('hidden');
-    };
-    render();
   }
 
-  function Icon({path='options', className='w-4 h-4', asHtml=false}){
-    const html = `<img src="https://assets.codepen.io/3685267/${path}.svg" alt="" class="${className}"/>`;
-    return asHtml? html: (()=>{ const img=new Image(); img.src=`https://assets.codepen.io/3685267/${path}.svg`; img.className=className; return img; })();
+  // util icons/images
+  function SidebarIcon(id) {
+    const map = {
+      //DASHBOARD
+      0: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path></svg>`,
+      //LISTA
+      1: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" clip-rule="evenodd"></path></svg>`,
+      //GRAFICOSEXTRA
+      2: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
+      //FORECAST
+      3: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>`,
+      //AJUDA
+      4: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`,
+      //SUPORTE
+      5: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>`,
+      //CONFIGURAÇÃO
+      6: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>`,
+    };
+    return map[id] ?? '';
   }
-  function IconButton({icon='options', className='w-2 h-2', onclick, asHtml=false}){
-    const html = `<button ${onclick?`onclick=\"${onclick}\"`:''} type="button" class="${className}"><img src="../../assets/icons/clipboard.png" class="w-full h-full"/></button>`;
-    return asHtml? html: (()=>{ const btn=document.createElement('button'); btn.type='button'; btn.className=className; btn.innerHTML=`<img src="https://assets.codepen.io/3685267/${icon}.svg" class="w-full h-full"/>`; if(onclick) btn.setAttribute('onclick', onclick); return btn; })();
-  }
-  
-  function Image({path='1', className='w-4 h-4', asHtml=false}){
-    const html = `<img src="https://assets.codepen.io/3685267/${path}.jpg" alt="" class="${className} rounded-full"/>`;
-    return asHtml? html: (()=>{ const img=new window.Image(); img.src=`https://assets.codepen.io/3685267/${path}.jpg`; img.className=className+" rounded-full"; return img; })();
-  }
-  
-  // === Processos disponíveis (id -> rótulo) ===
-  const PROCESSOS = [
-    { id: "USINAGEM", label: "Usinagem" },
-    { id: "DOBRA",    label: "Dobra" },
-    { id: "CHANFRO",  label: "Chanfro" },
-    { id: "SOLDA",    label: "Solda" },
-  ];
 
-window.formatarCampoHora = function(input) {
-  let val = input.value.replace(/[^0-9]/g, ""); // só números
+  window.__onSidebarHide = () => {
+    $('#sidebar').classList.add('hidden');
+  };
+  window.__onSidebarOpen = () => {
+    $('#sidebar').classList.remove('hidden');
+  };
+  window.__onSidebarToggle = () => {
+    const sidebar = $('#sidebar');
+    sidebar.classList.toggle('hidden');
+  };
+  render();
+}
+
+function Icon({ path = 'options', className = 'w-4 h-4', asHtml = false }) {
+  const html = `<img src="https://assets.codepen.io/3685267/${path}.svg" alt="" class="${className}"/>`;
+  return asHtml ? html : (() => { const img = new Image(); img.src = `https://assets.codepen.io/3685267/${path}.svg`; img.className = className; return img; })();
+}
+function IconButton({ icon = 'options', className = 'w-2 h-2', onclick, asHtml = false }) {
+  const html = `<button ${onclick ? `onclick=\"${onclick}\"` : ''} type="button" class="${className}"><img src="../../assets/icons/clipboard.png" class="w-full h-full"/></button>`;
+  return asHtml ? html : (() => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = className; btn.innerHTML = `<img src="https://assets.codepen.io/3685267/${icon}.svg" class="w-full h-full"/>`; if (onclick) btn.setAttribute('onclick', onclick); return btn; })();
+}
+
+function Image({ path = '1', className = 'w-4 h-4', asHtml = false }) {
+  const html = `<img src="https://assets.codepen.io/3685267/${path}.jpg" alt="" class="${className} rounded-full"/>`;
+  return asHtml ? html : (() => { const img = new window.Image(); img.src = `https://assets.codepen.io/3685267/${path}.jpg`; img.className = className + " rounded-full"; return img; })();
+}
+
+// === Processos disponíveis ===
+const PROCESSOS = [
+  { id: "USINAGEM", label: "Usinagem" },
+  { id: "DOBRA", label: "Dobra" },
+  { id: "CHANFRO", label: "Chanfro" },
+  { id: "SOLDA", label: "Solda" },
+];
+
+window.formatarCampoHora = function (input) {
+  let val = input.value.replace(/[^0-9]/g, "");
   if (!val) {
     input.value = "";
     return;
@@ -357,81 +364,362 @@ window.formatarCampoHora = function(input) {
   if (m > 59) m = 59;
   if (s > 59) s = 59;
 
-  input.value = `${String(h).padStart(2,"0")}h${String(m).padStart(2,"0")}min${String(s).padStart(2,"0")}s`;
+  input.value = `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}min${String(s).padStart(2, "0")}s`;
 };
 
 
-  // Cria/atualiza inputs de tempo para cada checkbox marcado
+// atualiza inputs de tempo para cada checkbox marcado
 function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, valoresPreExistentes = {}) {
   const container = modal.querySelector(seletorContainer);
   if (!container) return;
   const selecionados = Array.from(modal.querySelectorAll(`.${classeCheckbox}:checked`)).map(cb => cb.value);
   container.innerHTML = '';
 
-  const areas = ['comercial', 'engenharia', 'homologado'];
+  const areas = ['engenharia'];
 
   selecionados.forEach(proc => {
     const label = PROCESSOS.find(p => p.id === proc)?.label || proc;
     const valores = valoresPreExistentes[proc] || {};
 
-    const wrap = document.createElement('div');
-    wrap.className = 'border rounded p-3 mb-3 bg-white';
-    wrap.innerHTML = `
+    if (label === "Chanfro") {
+      const wrap = document.createElement('div');
+      wrap.className = 'border rounded p-3 mb-3 bg-white';
+      wrap.innerHTML = `
       <div class="font-bold mb-2">${label}</div>
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 gap-3">
         ${areas.map(area => {
-          const v = valores[area] || {};
-          const cap = area.charAt(0).toUpperCase() + area.slice(1);
-          return `
-            <div class="border rounded p-2">
-              <div class="font-semibold text-sm">${cap}</div>
+        const v = valores[area] || {};
+        const cap = area.charAt(0).toUpperCase() + area.slice(1);
+        return `
+            <div class="chanfro-card border rounded p-3">
+            <div class="font-semibold text-sm mb-2">${cap}</div>
 
-              <label class="text-xs block mt-2">Setup (h)</label>
-              <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
-                    data-proc="${proc}" data-area="${area}" data-field="setup"
-                    value="${v.setup || ''}"/>
+            <div class="grid grid-cols-2 gap-3">
 
-              <label class="text-xs block mt-2">Ciclo (h)</label>
-              <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
-                    data-proc="${proc}" data-area="${area}" data-field="ciclo"
-                    value="${v.ciclo || ''}"/>
+          <div>
+          <label class="text-base" title="Informe o peso total da peça">Peso (kg)</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="peso"
+            value="${v.peso || ''}">
+          </div>
+
+          <div>
+          <label class="text-base" title="Informe o comprimento da peça em milímetros">Comprimento (mm)</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="comprimento"
+            value="${v.comprimento || ''}">
+          </div>
+
+          <div>
+          <label class="text-base" title="Informe o tamanho do chanfro(comprimento) em milímetros">Perimetro (mm)</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="perimetro"
+            value="${v.perimetro || ''}">
+          </div>
+
+          <div>
+          <label class="text-base" title="Informe a distancia de material removido em milímetros">Cateto (mm)</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="cateto"
+            value="${v.cateto || ''}">
             </div>
-          `;
-        }).join('')}
+
+          <div>
+          <label class="text-base" title="Informe a quantidade de sapatas que o operador não utiliza, antes da ferramenta chegar na peça">Sapatas (qtd)</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="sapata"
+            value="${v.sapata || ''}">
+          </div>
+
+          <div>
+          <label class="text-base" title="Informe a quantidade de chanfros que será feita">N° Chanfros</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="nchanfro"
+            value="${v.nchanfro || ''}">
+          </div>
+
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-3">
+          <div>
+          <label class="font-bold text-base">Setup</label>
+          <input type="text" readonly class="w-full"
+            data-proc="${proc}" data-area="${area}" data-field="setup"
+            value="${v.setup || ''}">
+          </div>
+
+          <div>
+          <label class="font-bold text-base">Ciclo</label>
+          <input type="text" readonly class="w-full"
+            data-proc="${proc}" data-area="${area}" data-field="ciclo"
+            value="${v.ciclo || ''}">
+          </div>
+          </div>
+
+          <button class="mt-3 w-full bg-blue-500 text-white rounded p-1"
+          onclick="chanfroService.calcular(this)">
+          Calcular
+          </button>
+          </div>
+        `;
+      }).join('')}
       </div>
     `;
-    container.appendChild(wrap);
+      container.appendChild(wrap);
+    }
+
+    if (label === "Usinagem") {
+      const wrap = document.createElement('div');
+      wrap.className = 'border rounded p-3 mb-3 bg-white';
+      wrap.innerHTML = `
+        <div class="font-bold mb-2">${label}</div>
+        <div class="grid grid-cols-3 gap-3">
+          ${areas.map(area => {
+        const v = valores[area] || {};
+        const cap = area.charAt(0).toUpperCase() + area.slice(1);
+        return `
+              <div class="border rounded p-2">
+                <div class="font-semibold text-sm">${cap}</div>
+  
+                <label class="text-xs block mt-2">Setup (h)</label>
+                <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
+                      data-proc="${proc}" data-area="${area}" data-field="setup"
+                      value="${v.setup || ''}"/>
+  
+                <label class="text-xs block mt-2">Ciclo (h)</label>
+                <input type="text" class="tempoProc" onblur="formatarCampoHora(this)"
+                      data-proc="${proc}" data-area="${area}" data-field="ciclo"
+                      value="${v.ciclo || ''}"/>
+              </div>
+            `;
+      }).join('')}
+        </div>
+      `;
+      container.appendChild(wrap);
+    }
   });
 }
+//------------------------------------Constantes-Chanfro-----------------------------------------------------------------//
 
+const acabamento = 30;
+const retirarPeca = 30;
+const distSapata = 255
+
+
+const movimentacao = {
+  ima: 120,
+  girarPecaPesada: 60,
+  manual: 20,
+  girarPecaLeve: 30
+};
+
+const objAuxiliar = {
+  cavalete: 30,
+  garra: 30
+};
+
+const tempos_shinx = {
+  shinx1: {
+    setupChanfro: 900,
+    tempoChanfro8: 0.15,
+    tempoChanfro3: 0.32,
+    tempoVolta: 0.08,
+  }
+};
+
+//----------------------------------------------Chanfro Service-----------------------------------------------------------------//
+
+
+class chanfroService {
+
+  static validarPeso(peso) {
+    return peso > 23 ? movimentacao.ima : movimentacao.manual;
+  }
+
+  //Se o comprimento for maior do que 1500mm vai somar o tempo do cavalete
+  static validarComprimento(comprimento) {
+    return comprimento > 1500 ? objAuxiliar.cavalete : 0;
+  }
+
+  //Se o campo de dispositivo estiver ativo, vai somar o tempo do dispositivo
+  static validarDispositivo(dispositivo) {
+    return dispositivo ? objAuxiliar.garra : 0;
+  }
+
+  static validarMaquina(maquina) {
+    return tempos_shinx[maquina]
+  }
+
+  //Calcula a distancia com base em quantas sapatas ele n utilizou até chegar na peça
+  static distanciaSapata(sapata) {
+    return distSapata * sapata;
+  }
+
+  //Tempo que a máquina demora para executar o chanfro
+  static tempoChanfro(perimetro, maq, distancia, peso, cateto) {
+    const perimetroTotal = perimetro + distancia;
+
+    return peso <= 20 || cateto >= 15 ? maq.tempoChanfro3 * perimetroTotal : maq.tempoChanfro8 * perimetroTotal;
+  }
+
+  //Tempo que a máquina demora paraa voltar para a posição inicial
+  static tempoVolta(perimetro, maq, distancia) {
+    const perimetroTotal = perimetro + distancia;
+    return maq.tempoVolta * perimetroTotal;
+  }
+
+  static validarNumeros(valor){
+    if(valor >= 0){
+      return Number(valor)
+    }
+    else {
+      throw new Error()
+    }
+  }
+
+
+  //Calcula todos os dados recebidos e validados
+  static calcular(input) {
+
+    const card = input.closest(".chanfro-card");
+
+    const dados = {
+      peso: this.validarNumeros(card.querySelector(`[data-field="peso"]`).value),
+      comprimento: this.validarNumeros(card.querySelector(`[data-field="comprimento"]`).value),
+      perimetro: this.validarNumeros(card.querySelector(`[data-field="perimetro"]`).value),
+      cateto: this.validarNumeros(card.querySelector(`[data-field="cateto"]`).value),
+      maquina: "shinx1",
+      dispositivo: 1,
+      sapata: this.validarNumeros(card.querySelector(`[data-field="sapata"]`).value),
+      nchanfro: this.validarNumeros(card.querySelector(`[data-field="nchanfro"]`).value),
+    };
+
+    const distSapata = this.distanciaSapata(dados.sapata);
+    const mov = this.validarPeso(dados.peso);
+    const objAux = this.validarComprimento(dados.comprimento);
+    const dispositivo = this.validarDispositivo(dados.dispositivo);
+    const maq = this.validarMaquina(dados.maquina);
+    const chanfro = this.tempoChanfro(dados.perimetro, maq, distSapata, dados.peso, dados.cateto);
+    const volta = this.tempoVolta(dados.perimetro, maq, distSapata);
+
+    const ciclo =
+      mov +
+      chanfro +
+      acabamento +
+      retirarPeca +
+      dispositivo +
+      volta;
+
+    let tempoCiclo = 0;
+    const ciclosVariosChanfros = ciclo * dados.nchanfro;
+
+    dados.nchanfro >= 2 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
+
+    const setup =
+      chanfro +
+      volta +
+      tempos_shinx.shinx1.setupChanfro +
+      objAux;
+
+    function converterTempo(minutosDecimais) {
+      let minutos = Math.floor(minutosDecimais);
+      let segundos = Math.round((minutosDecimais - minutos) * 60);
+
+      if (segundos === 60) {
+        minutos += 1;
+        segundos = 0;
+      }
+
+      return `${minutos}:${segundos.toString().padStart(2, '0')}`
+    }
+
+    const tempoSetupFinal = converterTempo(setup / 60);
+    const tempoCicloFinal = converterTempo(tempoCiclo / 60);
+
+    card.querySelector(`[data-field = "setup"]`).value = tempoSetupFinal
+    card.querySelector(`[data-field = "ciclo"]`).value = tempoCicloFinal
+
+    return { tempoCicloFinal, tempoSetupFinal }
+  }
+
+  static calcularDoBanco(valores) {
+    const dados = {
+      peso: valores.peso,
+      comprimento: valores.comprimento,
+      perimetro: valores.perimetro,
+      cateto: valores.cateto,
+      maquina: "shinx1",
+      dispositivo: 1,
+      sapata: valores.sapata,
+      nchanfro: valores.nchanfro
+    };
+
+    const distSapata = this.distanciaSapata(dados.sapata);
+    const mov = this.validarPeso(dados.peso);
+    const objAux = this.validarComprimento(dados.comprimento);
+    const dispositivo = this.validarDispositivo(dados.dispositivo);
+    const maq = this.validarMaquina(dados.maquina);
+    const chanfro = this.tempoChanfro(dados.perimetro, maq, distSapata, dados.peso, dados.cateto);
+    const volta = this.tempoVolta(dados.perimetro, maq, distSapata);
+
+    const ciclo =
+      mov +
+      chanfro +
+      acabamento +
+      retirarPeca +
+      dispositivo +
+      volta;
+
+    let tempoCiclo = 0;
+    const ciclosVariosChanfros = ciclo * dados.nchanfro;
+
+    dados.nchanfro >= 2 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
+
+    const setup =
+      chanfro +
+      volta +
+      tempos_shinx.shinx1.setupChanfro +
+      objAux;
+
+    function converterTempo(minutosDecimais) {
+      let minutos = Math.floor(minutosDecimais);
+      let segundos = Math.round((minutosDecimais - minutos) * 60);
+
+      if (segundos === 60) {
+        minutos += 1;
+        segundos = 0;
+      }
+
+      return `${minutos}:${segundos.toString().padStart(2, '0')}`
+    }
+
+    const tempoSetupFinal = converterTempo(setup / 60);
+    const tempoCicloFinal = converterTempo(tempoCiclo / 60);
+
+    return { tempoCicloFinal, tempoSetupFinal }
+  }
+}
+
+//-------------------------------------------Armazena o tempo do input----------------------------//
 function coletarTemposPorProcesso(modal) {
   const tempos = {};
   modal.querySelectorAll('.tempoProc').forEach(inp => {
     const proc = inp.dataset.proc;
     const area = inp.dataset.area;
     const field = inp.dataset.field;
-    const val = converterHoraParaDecimal(inp.value);
+    const val = chanfroService.validarNumeros(inp.value);
     if (!tempos[proc]) tempos[proc] = {};
-    if (!tempos[proc][area]) tempos[proc][area] = { setup: 0, ciclo: 0 };
-    tempos[proc][area][field] = isNaN(val) ? 0 : val;
+    if (!tempos[proc][area]) tempos[proc][area] = {};
+    tempos[proc][area][field] = val;
   });
   return tempos;
 }
 
-function converterHoraParaDecimal(str) {
-  if (!str) return 0;
-  // pega apenas dígitos
-  const match = str.match(/(\d+)h(\d+)min(\d+)s/);
-  if (!match) return 0;
-  const h = parseInt(match[1], 10) || 0;
-  const m = parseInt(match[2], 10) || 0;
-  const s = parseInt(match[3], 10) || 0;
-  return h + (m/60) + (s/3600);
-}
+//-------------------------------------------Monta o painel de visualização---------------------//
 
 function montarCamposTempoView(container, processos = [], temposObj = {}) {
   container.innerHTML = '';
-  const areas = ['comercial','engenharia','homologado'];
+  const areas = ['engenharia'];
   processos.forEach(proc => {
     const label = PROCESSOS.find(p => p.id === proc)?.label || proc;
     const valores = temposObj[proc] || {};
@@ -442,35 +730,45 @@ function montarCamposTempoView(container, processos = [], temposObj = {}) {
       <div class="font-bold mb-2">${label}</div>
       <div class="grid grid-cols-3 gap-3">
         ${areas.map(area => {
-          const v = valores[area] || {};
-          const cap = area.charAt(0).toUpperCase() + area.slice(1);
-          return `
+      const v = valores[area] || {};
+      const cap = area.charAt(0).toUpperCase() + area.slice(1);
+      return `
             <div class="border rounded p-2">
-              <div class="font-semibold text-sm">${cap}</div>
-              <label class="text-xs block mt-2">Setup (h)</label>
-              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterDecimalParaHora(v.setup)}" />
-              <label class="text-xs block mt-2">Ciclo (h)</label>
-              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterDecimalParaHora(v.ciclo)}" />
+              <div class="font-semibold text-base">${cap}</div>
+              <label class="font-bold text-base block mt-2">Setup (min)</label>
+              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterTempoChanfro.converterTempoChanfro(v, "setup")}" />
+              <label class="font-bold text-base block mt-2">Ciclo (min)</label>
+              <input type="text" disabled class="border px-2 py-1 rounded w-full bg-gray-100" value="${converterTempoChanfro.converterTempoChanfro(v, "ciclo")}" />
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     `;
     container.appendChild(wrap);
   });
 }
 
-function converterDecimalParaHora(valor) {
-  if (!valor || isNaN(valor)) return "00h00min00s";
-  const h = Math.floor(valor);
-  const m = Math.floor((valor - h) * 60);
-  const s = Math.round(((valor - h) * 60 - m) * 60);
-  return `${String(h).padStart(2,"0")}h${String(m).padStart(2,"0")}min${String(s).padStart(2,"0")}s`;
+//------------------------------------------Formata o tempo da visualização----------------------//
+class converterTempoChanfro {
+
+  static converterTempoChanfro(obj, tipo) {
+    if (!obj || typeof obj !== 'object') return "00:00:00";
+
+    const resultado = chanfroService.calcularDoBanco(obj);
+
+    if(tipo === "setup"){ 
+      return resultado.tempoSetupFinal || "00:00:00";
+    }
+    else if(tipo === "ciclo"){
+      return resultado.tempoCicloFinal || "00:00:00";
+    }
+    else return "00:00:00"
+  }
 }
 
-  // ======== Conteúdo principal ========
-  function Content({ mount }){
-    mount.innerHTML = `
+// ======== Conteúdo principal ========
+function Content({ mount }) {
+  mount.innerHTML = `
       <div class="w-full sm:flex p-2 mt-4 items-end">
       </div>
       <div id="cards" class="flex flex-wrap w-full"></div>
@@ -490,42 +788,42 @@ function converterDecimalParaHora(valor) {
         <div class="rounded-lg bg-card-content h-80 p-4 shadow-lg" id="clientes"></div>
       </div>`;
 
-    // Cards de pessoas
-    const cards = $('#cards', mount);
-    statusData.forEach(e=> cards.appendChild(statusCard(e)) );
-    // Gráfico
-    Graph($('#graph', mount));
-    // Cliente
-    Clientes($('#clientes', mount), year);
-    // Segmentação
-    Segmentation($('#segmentation', mount));
-    // Satisfação
-    Satisfaction($('#satisfaction', mount), year);
-    // Add component
-    AddComponent($('#addComponent', mount), year);
-    
+  // Cards de pessoas
+  const cards = $('#cards', mount);
+  statusData.forEach(e => cards.appendChild(statusCard(e)));
+  // Gráfico
+  Graph($('#graph', mount));
+  // Cliente
+  Clientes($('#clientes', mount), year);
+  // Segmentação
+  Segmentation($('#segmentation', mount));
+  // Satisfação
+  Satisfaction($('#satisfaction', mount), year);
+  // Add component
+  AddComponent($('#addComponent', mount), year);
+
+}
+
+function statusCard({ id, name, position, transactions, rise }, mesSelecionado) {
+  const wrap = document.createElement('div');
+  wrap.className = 'w-full p-2 lg:w-1/3';
+
+  let statusIcon = [];
+  switch (id) {
+    case 1: statusIcon = '<i class="fi fi-bs-cross animate-draw-x"></i>'; break;
+    case 2: statusIcon = '<i class="fi fi-bs-refresh animate-refresh"></i>'; break;
+    case 3: statusIcon = '<i class="fi fi-bs-check animate-draw-check"></i>'; break;
+    default: statusIcon = '<i class="fa fa-question-circle"></i>';
   }
 
-  function statusCard({id, name, position, transactions, rise}, mesSelecionado){
-    const wrap = document.createElement('div');
-    wrap.className='w-full p-2 lg:w-1/3';
+  // traduz número para nome do mês
+  const nomesMes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  let textoMes = "Todos";
+  if (mesSelecionado) {
+    textoMes = nomesMes[mesSelecionado - 1];
+  }
 
-    let statusIcon = [];
-    switch(id){
-      case 1: statusIcon = '<i class="fi fi-bs-cross animate-draw-x"></i>'; break;
-      case 2: statusIcon = '<i class="fi fi-bs-refresh animate-refresh"></i>'; break;
-      case 3: statusIcon = '<i class="fi fi-bs-check animate-draw-check"></i>'; break;
-      default: statusIcon = '<i class="fa fa-question-circle"></i>';
-    }
-
-    // traduz número para nome do mês
-    const nomesMes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-    let textoMes = "Todos";
-    if (mesSelecionado) {
-      textoMes = nomesMes[mesSelecionado-1];
-    }
-
-    wrap.innerHTML = `
+  wrap.innerHTML = `
       <div class="rounded-lg bg-card-content flex justify-between items-center p-3 h-32 shadow-lg">
         <div>
           <div class="flex items-center">
@@ -539,27 +837,27 @@ function converterDecimalParaHora(valor) {
           </div>
         </div>
         <div class="flex flex-col items-center">
-          ${Icon({path: rise? 'res-react-dash-bull':'res-react-dash-bear', className:'w-8 h-8', asHtml:true})}
-          <div class="font-bold text-lg ${rise? 'text-green-500':'text-red-500'}" id="product"></div>
+          ${Icon({ path: rise ? 'res-react-dash-bull' : 'res-react-dash-bear', className: 'w-8 h-8', asHtml: true })}
+          <div class="font-bold text-lg ${rise ? 'text-green-500' : 'text-red-500'}" id="product"></div>
           <div class="text-sm text-gray-400">No mês de: ${textoMes}</div>
         </div>
       </div>`;
-      
-    // animações
-    const product = $('#product', wrap);
-    animateValue({ from:0, to:transactions, duration:900, onUpdate:(v)=>{ product.textContent = `${v.toFixed(0)}`; }});
 
-    return wrap;
-  }
+  // animações
+  const product = $('#product', wrap);
+  animateValue({ from: 0, to: transactions, duration: 900, onUpdate: (v) => { product.textContent = `${v.toFixed(0)}`; } });
+
+  return wrap;
+}
 
 
-  // ======== Gráfico SVG responsivo (linhas) ========
-function Graph(mount){
+// ======== Gráfico SVG responsivo (linhas) ========
+function Graph(mount) {
 
   // guarda valor selecionado (se existir)
   const selectAntigo = document.getElementById("anos");
   const valorSelecionado = selectAntigo ? selectAntigo.value : "";
-  
+
   const selectMesAntigo = document.getElementById("mes");
   const valorMesSelecionado = selectMesAntigo ? selectMesAntigo.value : "";
 
@@ -640,70 +938,70 @@ function Graph(mount){
   }
   const svgWrap = $('#svgWrap', mount);
 
-function renderSvg(){
-  const w = svgWrap.offsetWidth || 600;
-  const h = svgWrap.offsetHeight || 260;
-  const pad = {l:40, r:40, t:10, b:50};
-  const x0 = pad.l, x1 = w - pad.r, y0 = h - pad.b, y1 = pad.t;
+  function renderSvg() {
+    const w = svgWrap.offsetWidth || 600;
+    const h = svgWrap.offsetHeight || 260;
+    const pad = { l: 40, r: 40, t: 10, b: 50 };
+    const x0 = pad.l, x1 = w - pad.r, y0 = h - pad.b, y1 = pad.t;
 
-  const xs = (i)=> map(i, 0, graphData.length-1, x0, x1);
-  const maxY = Math.max(1, ...graphData.map(d=>Math.max(d.produtos,d.finalizados,d.meta))) * 1.12;
-  const ys = (v)=> map(v, 0, maxY, y0, y1);
+    const xs = (i) => map(i, 0, graphData.length - 1, x0, x1);
+    const maxY = Math.max(1, ...graphData.map(d => Math.max(d.produtos, d.finalizados, d.meta))) * 1.12;
+    const ys = (v) => map(v, 0, maxY, y0, y1);
 
-  const xTicks = graphData.map((d,i)=>({x: xs(i), label:d.name}));
+    const xTicks = graphData.map((d, i) => ({ x: xs(i), label: d.name }));
 
-  // cria ticks no eixo Y (ex: 5 divisões)
-  const nYTicks = 5;
-  const yTicks = [];
-  for(let i=0;i<=nYTicks;i++){
-    const v = (maxY/nYTicks) * i;
-    yTicks.push({y: ys(v), label: Math.round(v)});
-  }
-
-  function getSmoothPath(data, xs, ys, suavização = 0.5) {
-    if (!data.length) return '';
-    let d = `M ${xs(0)} ${ys(data[0])}`;
-    for (let i = 1; i < data.length; i++) {
-      const x0 = xs(i-1), y0 = ys(data[i-1]);
-      const x1 = xs(i), y1 = ys(data[i]);
-      const cx = (x0 + x1) * suavização;
-      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+    // cria ticks no eixo Y (ex: 5 divisões)
+    const nYTicks = 5;
+    const yTicks = [];
+    for (let i = 0; i <= nYTicks; i++) {
+      const v = (maxY / nYTicks) * i;
+      yTicks.push({ y: ys(v), label: Math.round(v) });
     }
-    return d;
-  }
 
-  const pathFinalizados = getSmoothPath(graphData.map(d=>d.finalizados), xs, ys);
-  const pathMeta = getSmoothPath(graphData.map(d=>d.meta), xs, ys);
+    function getSmoothPath(data, xs, ys, suavização = 0.5) {
+      if (!data.length) return '';
+      let d = `M ${xs(0)} ${ys(data[0])}`;
+      for (let i = 1; i < data.length; i++) {
+        const x0 = xs(i - 1), y0 = ys(data[i - 1]);
+        const x1 = xs(i), y1 = ys(data[i]);
+        const cx = (x0 + x1) * suavização;
+        d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+      }
+      return d;
+    }
 
-  svgWrap.innerHTML = `
+    const pathFinalizados = getSmoothPath(graphData.map(d => d.finalizados), xs, ys);
+    const pathMeta = getSmoothPath(graphData.map(d => d.meta), xs, ys);
+
+    svgWrap.innerHTML = `
     <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
       <!-- grid vertical -->
-      ${xTicks.map(t=>`<line x1="${t.x}" x2="${t.x}" y1="${y1}" y2="${y0}" stroke="#ffffffff" stroke-width="6"/>`).join('')}
+      ${xTicks.map(t => `<line x1="${t.x}" x2="${t.x}" y1="${y1}" y2="${y0}" stroke="#ffffffff" stroke-width="6"/>`).join('')}
       <!-- grid horizontal -->
-      ${yTicks.map(t=>`<line x1="${x0}" x2="${x1}" y1="${t.y}" y2="${t.y}" stroke="#a5a5a5ff" stroke-width="0.5"/>`).join('')}
+      ${yTicks.map(t => `<line x1="${x0}" x2="${x1}" y1="${t.y}" y2="${t.y}" stroke="#a5a5a5ff" stroke-width="0.5"/>`).join('')}
       <!-- eixo X labels -->
-      ${xTicks.map(t=>`<text x="${t.x}" y="${y0 + 20}" text-anchor="middle" font-size="12" fill="#000">${t.label}</text>`).join('')}
+      ${xTicks.map(t => `<text x="${t.x}" y="${y0 + 20}" text-anchor="middle" font-size="12" fill="#000">${t.label}</text>`).join('')}
       
       <!-- Barras (TOTAL) -->
-      ${graphData.map((d,i)=>`
-        <rect x="${xs(i)-10}" y="${ys(d.produtos)}" width="20" height="${y0 - ys(d.produtos)}" fill="#4472C4"/>
+      ${graphData.map((d, i) => `
+        <rect x="${xs(i) - 10}" y="${ys(d.produtos)}" width="20" height="${y0 - ys(d.produtos)}" fill="#4472C4"/>
         ${d.produtos > 0 ? `<text x="${xs(i)}" y="${ys(d.produtos) - 8}" text-anchor="middle" font-size="15" fill="#4472C4">${d.produtos}</text>` : ""}
       `).join('')}
       
       <!-- Linha finalizados -->
       <path d="${pathFinalizados}" fill="none" stroke="#ED7D31" stroke-width="3"/>
-      ${graphData.map((d,i)=> d.finalizados > 0 ? `
+      ${graphData.map((d, i) => d.finalizados > 0 ? `
         <text x="${xs(i) + 12}" y="${ys(d.finalizados) - 5}" text-anchor="start" font-size="15" fill="#ED7D31">${d.finalizados}</text>
       ` : "").join('')}
 
       <!-- Linha meta fixa -->
       <path d="${pathMeta}" fill="none" stroke="#ff0000" stroke-dasharray="6,3" stroke-width="1"/>
-      ${graphData.map((d,i)=> d.finalizados > 0 ? `
+      ${graphData.map((d, i) => d.finalizados > 0 ? `
         <text x="${xs(i)}" y="${ys(d.meta) + 15}" text-anchor="middle" font-size="12" fill="#ff0000">${d.meta}</text>
       ` : "").join('')}
     </svg>
   `;
-}
+  }
 
 
 
@@ -715,13 +1013,13 @@ function renderSvg(){
 
 function gerarSegmentationData(produtos) {
   const processos = [
-    {nome: "USINAGEM", cor: "#156912ff"},
-    {nome: "DOBRA", cor: "#0526adff"},
-    {nome: "CHANFRO", cor: "#b40b0bff"},
-    {nome: "SOLDA", cor: "#5b0b6bff"},
+    { nome: "USINAGEM", cor: "#156912ff" },
+    { nome: "DOBRA", cor: "#0526adff" },
+    { nome: "CHANFRO", cor: "#b40b0bff" },
+    { nome: "SOLDA", cor: "#5b0b6bff" },
   ];
 
-  const resultado = processos.map(p => ({...p, itens: []}));
+  const resultado = processos.map(p => ({ ...p, itens: [] }));
 
   produtos.forEach(p => {
     const status = (p.STATUS || "").toUpperCase().trim();
@@ -744,7 +1042,7 @@ function gerarSegmentationData(produtos) {
 }
 
 
-function Segmentation(mount){
+function Segmentation(mount) {
   const dados = gerarSegmentationData(produtosanuais);
 
   mount.innerHTML = `
@@ -763,9 +1061,9 @@ function Segmentation(mount){
     </div>`;
 
   const rows = $('#rows', mount);
-  dados.forEach(({processo, quantidade, cor})=>{
+  dados.forEach(({ processo, quantidade, cor }) => {
     const row = document.createElement('div');
-    row.className='flex items-center mt-2';
+    row.className = 'flex items-center mt-2';
     row.innerHTML = `
       <div class="w-2 h-2 rounded-full" style="background:${cor}"></div>
       <div class="ml-2" style="color:${cor}">${processo}</div>
@@ -775,13 +1073,13 @@ function Segmentation(mount){
     rows.appendChild(row);
   });
 
-  // botão único → abre modal com todos os itens
-  $('#btnDetalhes', mount).addEventListener("click", ()=>{
-    abrirModalDetalhes(dados); // passa [{processo, quantidade, itens}, ...]
+  // modal com todos os itens
+  $('#btnDetalhes', mount).addEventListener("click", () => {
+    abrirModalDetalhes(dados);
   });
 }
 
-function abrirModalDetalhes(dadosPorProcesso){
+function abrirModalDetalhes(dadosPorProcesso) {
   let modal = document.getElementById("modal-detalhes");
   if (!modal) {
     modal = document.createElement("div");
@@ -807,23 +1105,23 @@ function abrirModalDetalhes(dadosPorProcesso){
     </div>
   `;
 
-  // Monta os campos de tempo quando marca/desmarca
+
   modal.querySelectorAll(".novoProcesso").forEach(cb => {
     cb.addEventListener("change", () => {
       montarCamposTempoPorProcesso(modal, "novoProcesso", "#temposProcessosNovo");
     });
   });
 
-  // fechar modal
-  modal.querySelector("#fecharModal").addEventListener("click", ()=> modal.remove());
+
+  modal.querySelector("#fecharModal").addEventListener("click", () => modal.remove());
 
   const conteudo = modal.querySelector("#conteudoProcessos");
 
-  // Função que monta as tabelas
-  function renderTabela(filtro=""){
+
+  function renderTabela(filtro = "") {
     conteudo.innerHTML = "";
 
-    dadosPorProcesso.forEach(proc=>{
+    dadosPorProcesso.forEach(proc => {
       const itensFiltrados = proc.itens.filter(i => {
         const txt = (i.partNumber + " " + i.shipDate).toLowerCase();
         return txt.includes(filtro.toLowerCase());
@@ -844,7 +1142,7 @@ function abrirModalDetalhes(dadosPorProcesso){
             </tr>
           </thead>
           <tbody>
-            ${itensFiltrados.map(i=>`
+            ${itensFiltrados.map(i => `
               <tr class="border-b">
                 <td class="p-2">${i.partNumber}</td>
                 <td class="p-2">${i.shipDate}</td>
@@ -858,16 +1156,14 @@ function abrirModalDetalhes(dadosPorProcesso){
     });
   }
 
-  // render inicial
   renderTabela();
 
-  // aplicar filtro enquanto digita
-  modal.querySelector("#filtroItens").addEventListener("input", (e)=>{
+  modal.querySelector("#filtroItens").addEventListener("input", (e) => {
     renderTabela(e.target.value);
   });
 }
 
-function Satisfaction(mount, anoSelecionado, mesSelecionado){
+function Satisfaction(mount, anoSelecionado, mesSelecionado) {
   const produtosFiltrados = produtosanuais.filter(p => {
     const data = p["ENTRADA"];
     if (!data) return false;
@@ -924,13 +1220,13 @@ function Satisfaction(mount, anoSelecionado, mesSelecionado){
   const path = $('#satPath', mount);
   const dot = $('#satDot', mount);
   animateValue({
-    from:785.4,
-    to:785.4 - (785.4 * (taxa/100)), // proporção da taxa
-    duration:1500,
-    easing:(t)=>1-Math.pow(1-t,3),
-    onUpdate:(v)=>{
+    from: 785.4,
+    to: 785.4 - (785.4 * (taxa / 100)), // proporção da taxa
+    duration: 1500,
+    easing: (t) => 1 - Math.pow(1 - t, 3),
+    onUpdate: (v) => {
       path.setAttribute('stroke-dashoffset', String(v));
-      const pi = Math.PI; const tau = 2*pi;
+      const pi = Math.PI; const tau = 2 * pi;
       const cx = 350 + 250 * Math.cos(map(v, 785.4, 0, pi, tau));
       const cy = 350 + 250 * Math.sin(map(v, 785.4, 0, pi, tau));
       dot.setAttribute('cx', String(cx));
@@ -940,17 +1236,17 @@ function Satisfaction(mount, anoSelecionado, mesSelecionado){
 }
 
 
-  function AddComponent(mount, anoSelecionado, mesSelecionado){
-    // calcula total de produtos filtrados pelo ano
-    const dados = agruparProdutosPorMes(produtosanuais, anoSelecionado, mesSelecionado);
-    const totalProdutos = dados.reduce((soma, d) => soma + d.produtos, 0);
+function AddComponent(mount, anoSelecionado, mesSelecionado) {
 
-    const totalFuncionarios = 6;
-    const ncPermitido = Math.round(totalProdutos * 0.005); // 0,5%
-    const ncReal = Math.round(ncPermitido * 0.5);
-    console.log("Dados de NC",ncReal);
+  const dados = agruparProdutosPorMes(produtosanuais, anoSelecionado, mesSelecionado);
+  const totalProdutos = dados.reduce((soma, d) => soma + d.produtos, 0);
 
-    mount.innerHTML = `
+  const totalFuncionarios = 6;
+  const ncPermitido = Math.round(totalProdutos * 0.005); // 0,5%
+  const ncReal = Math.round(ncPermitido * 0.5);
+  console.log("Dados de NC", ncReal);
+
+  mount.innerHTML = `
       <div class="p-4 h-full flex flex-col shadow-lg">
         <div class="text-black font-bold text-lg mb-4 border-b pb-2 ">
           SUMÁRIO DE AMOSTRAS (KPI) (${anoSelecionado || 'Todos'})
@@ -984,11 +1280,11 @@ function Satisfaction(mount, anoSelecionado, mesSelecionado){
           </table>
         </div>
       </div>`;
-  }
+}
 
-  // ======== Clientes ========
-  
-function Clientes(mount, anoSelecionado, mesSelecionado){
+// ======== Clientes ========
+
+function Clientes(mount, anoSelecionado, mesSelecionado) {
   const produtosFiltrados = produtosanuais.filter(p => {
     const data = p["ENTRADA"];
     if (!data) return false;
@@ -1013,7 +1309,7 @@ function Clientes(mount, anoSelecionado, mesSelecionado){
 
   const clientes = Object.entries(clientesMap)
     .map(([name, value], idx) => ({
-      id: idx+1,
+      id: idx + 1,
       name,
       value,
       rise: true
@@ -1031,15 +1327,15 @@ function Clientes(mount, anoSelecionado, mesSelecionado){
   `;
 
   const rows = $('#rows', mount);
-  clientes.forEach(({id,name,value,rise})=>{
+  clientes.forEach(({ id, name, value, rise }) => {
     const row = document.createElement('div');
-    row.className='flex items-center mt-3';
+    row.className = 'flex items-center mt-3';
     row.innerHTML = `
       <div>${id}</div>
       <div class="ml-2">${name}</div>
       <div class="flex-grow"></div>
       <div>${value.toLocaleString()}</div>
-      <img src="https://assets.codepen.io/3685267/${rise? 'res-react-dash-country-up':'res-react-dash-country-down'}.svg" class="w-4 h-4 mx-3"/>
+      <img src="https://assets.codepen.io/3685267/${rise ? 'res-react-dash-country-up' : 'res-react-dash-country-down'}.svg" class="w-4 h-4 mx-3"/>
       <img src="https://assets.codepen.io/3685267/res-react-dash-options.svg" class="w-2 h-2"/>
     `;
     rows.appendChild(row);
@@ -1047,7 +1343,7 @@ function Clientes(mount, anoSelecionado, mesSelecionado){
 }
 
 
-function ProdutosPage(mount){
+function ProdutosPage(mount) {
   let produtos = [...produtosanuais]; // cópia local
   let filtroTexto = "";
 
@@ -1120,28 +1416,28 @@ function ProdutosPage(mount){
     const dataInicio = $('#filtroDataInicio').value;
 
     const filtrados = produtos.filter(p => {
-      // 🔸 1. Filtro por texto
+      // Filtro por texto
       const txt = Object.values(p).join(" ").toLowerCase();
       if (texto && !txt.includes(texto)) return false;
 
-      // 🔸 2. Filtro por cliente
+      // Filtro por cliente
       if (clienteSelecionado && p.CLIENTE !== clienteSelecionado) return false;
 
-      // 🔸 3. Filtro por processo (verifica no STATUS)
+      // Filtro por processo (verifica no STATUS)
       if (processoSelecionado && !(p.STATUS || "").toUpperCase().includes(processoSelecionado)) return false;
 
-      // 🔸 4. Filtro por intervalo de datas
+      //  Filtro por intervalo de datas
       const data = p["ENTRADA"] || p["SHIP DATE"];
       if (data) {
         const partes = data.split("/");
         if (partes.length === 3) {
-          const dia = partes[0].padStart(2,"0");
-          const mes = partes[1].padStart(2,"0");
+          const dia = partes[0].padStart(2, "0");
+          const mes = partes[1].padStart(2, "0");
           const ano = partes[2];
-          const dataProduto = new Date(ano, parseInt(mes,10)-1, parseInt(dia,10));
+          const dataProduto = new Date(ano, parseInt(mes, 10) - 1, parseInt(dia, 10));
           if (dataInicio) {
             const inicio = new Date(dataInicio);
-            inicio.setHours(0,0,0,0);
+            inicio.setHours(0, 0, 0, 0);
             if (dataProduto < inicio) return false;
           }
         }
@@ -1155,7 +1451,7 @@ function ProdutosPage(mount){
       let displayStatus = originalStatus;
       let diasAtraso = null;
 
-      // calcula se está atrasado com base no SHIP DATE (formato dd/mm/yyyy)
+      // SHIP DATE (formato dd/mm/yyyy)
       if (p["SHIP DATE"]) {
         const partes = (p["SHIP DATE"] || "").split("/");
         if (partes.length === 3) {
@@ -1163,13 +1459,12 @@ function ProdutosPage(mount){
           const m = parseInt(partes[1], 10);
           const a = parseInt(partes[2], 10);
           if (!isNaN(d) && !isNaN(m) && !isNaN(a)) {
-            const dataShip = new Date(a, m-1, d);
+            const dataShip = new Date(a, m - 1, d);
             const hoje = new Date();
             // neutraliza horas para comparação só por dia
-            dataShip.setHours(0,0,0,0);
-            hoje.setHours(0,0,0,0);
+            dataShip.setHours(0, 0, 0, 0);
+            hoje.setHours(0, 0, 0, 0);
 
-            // se ship < hoje e não finalizado => ATRASADO
             if (dataShip < hoje && !originalStatus.toUpperCase().includes("FINALIZADO")) {
               displayStatus = "ATRASADO";
               const diffMs = hoje.getTime() - dataShip.getTime();
@@ -1204,46 +1499,46 @@ function ProdutosPage(mount){
 
 
   // filtro em tempo real
-  $('#filtroProdutos', mount).addEventListener("input", e=>{
+  $('#filtroProdutos', mount).addEventListener("input", e => {
     filtroTexto = e.target.value;
     renderTabela();
   });
 
   // adicionar novo produto
-  $('#btnNovoProduto', mount).addEventListener("click", ()=>{
+  $('#btnNovoProduto', mount).addEventListener("click", () => {
     abrirModalNovoProduto();
   });
 
   renderTabela();
 
-function renderStatusBadge(status) {
-  const s = (status || "").toUpperCase();
-  let cor = "bg-gray-400 text-white";
+  function renderStatusBadge(status) {
+    const s = (status || "").toUpperCase();
+    let cor = "bg-gray-400 text-white";
 
-  if (s.includes("FINALIZADO")) cor = "bg-green-500 text-white";
-  else if (s.includes("EM ANDAMENTO") || s.includes("ANDAMENTO") || s.includes("PROCESSO")) cor = "bg-blue-500 text-white";
-  else if (s.includes("NÃO INICIADO") || s.includes("NAO INICIADO")) cor = "bg-gray-500 text-white";
-  else if (s.includes("PROCESSO DE USINAGEM")) cor = "bg-blue-500 text-white";
-  else if (s.includes("PROCESSO DE DOBRA")) cor = "bg-purple-500 text-white";
-  else if (s.includes("PROCESSO DE CHANFRO")) cor = "bg-orange-500 text-white";
-  else if (s.includes("PROCESSO DE SOLDA")) cor = "bg-yellow-500 text-white";
-  else if (s.includes("ATRASADO")) cor = "bg-red-600 text-white"; // novo
-  else cor = "bg-red-500 text-white"; // status desconhecido
+    if (s.includes("FINALIZADO")) cor = "bg-green-500 text-white";
+    else if (s.includes("EM ANDAMENTO") || s.includes("ANDAMENTO") || s.includes("PROCESSO")) cor = "bg-blue-500 text-white";
+    else if (s.includes("NÃO INICIADO") || s.includes("NAO INICIADO")) cor = "bg-gray-500 text-white";
+    else if (s.includes("PROCESSO DE USINAGEM")) cor = "bg-blue-500 text-white";
+    else if (s.includes("PROCESSO DE DOBRA")) cor = "bg-purple-500 text-white";
+    else if (s.includes("PROCESSO DE CHANFRO")) cor = "bg-orange-500 text-white";
+    else if (s.includes("PROCESSO DE SOLDA")) cor = "bg-yellow-500 text-white";
+    else if (s.includes("ATRASADO")) cor = "bg-red-600 text-white"; // novo
+    else cor = "bg-red-500 text-white"; // status desconhecido
 
-  return `<span class="px-2 py-1 rounded text-xs font-bold ${cor}">${status}</span>`;
-}
-
-
-function abrirModalNovoProduto() {
-  let modal = document.getElementById("modal-novo-produto");
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "modal-novo-produto";
-    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-    document.body.appendChild(modal);
+    return `<span class="px-2 py-1 rounded text-xs font-bold ${cor}">${status}</span>`;
   }
 
-  modal.innerHTML = `
+
+  function abrirModalNovoProduto() {
+    let modal = document.getElementById("modal-novo-produto");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "modal-novo-produto";
+      modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
     <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">Adicionar Novo Produto</h3>
       <div class="grid grid-cols-2 gap-4">
@@ -1305,77 +1600,77 @@ function abrirModalNovoProduto() {
     </div>
   `;
 
-  // bind processos -> montar campos
-  modal.querySelectorAll(".novoProcesso").forEach(cb => {
-    cb.addEventListener("change", () => {
-      montarCamposTempoPorProcesso(modal, "novoProcesso", "#temposProcessosNovo");
+    // bind processos -> montar campos
+    modal.querySelectorAll(".novoProcesso").forEach(cb => {
+      cb.addEventListener("change", () => {
+        montarCamposTempoPorProcesso(modal, "novoProcesso", "#temposProcessosNovo");
+      });
     });
-  });
 
-  // tipo -> exibe seção componentes
-  modal.querySelector("#novoTipo").addEventListener("change", (e) => {
-    const secao = modal.querySelector("#secaoComponentes");
-    if (e.target.value === "CONJUNTO") secao.classList.remove("hidden");
-    else secao.classList.add("hidden");
-  });
+    // tipo -> exibe seção componentes
+    modal.querySelector("#novoTipo").addEventListener("change", (e) => {
+      const secao = modal.querySelector("#secaoComponentes");
+      if (e.target.value === "CONJUNTO") secao.classList.remove("hidden");
+      else secao.classList.add("hidden");
+    });
 
-  // adicionar componente
-  modal.querySelector("#btnAdicionarComponente")?.addEventListener("click", () => adicionarComponente(modal, "listaComponentes"));
+    // adicionar componente
+    modal.querySelector("#btnAdicionarComponente")?.addEventListener("click", () => adicionarComponente(modal, "listaComponentes"));
 
-  // cancelar
-  modal.querySelector("#cancelarNovo").addEventListener("click", ()=> modal.remove());
+    // cancelar
+    modal.querySelector("#cancelarNovo").addEventListener("click", () => modal.remove());
 
-  // salvar
-  modal.querySelector("#salvarNovo").addEventListener("click", async () => {
-    try {
-      const processosSelecionados = Array.from(modal.querySelectorAll(".novoProcesso:checked")).map(cb => cb.value);
-      const tempos = coletarTemposPorProcesso(modal);
-      const componentes = coletarComponentes(modal, "listaComponentes");
+    // salvar
+    modal.querySelector("#salvarNovo").addEventListener("click", async () => {
+      try {
+        const processosSelecionados = Array.from(modal.querySelectorAll(".novoProcesso:checked")).map(cb => cb.value);
+        const tempos = coletarTemposPorProcesso(modal);
+        const componentes = coletarComponentes(modal, "listaComponentes");
 
-      const novo = {
-        "PART NUMBER": modal.querySelector("#novoPart").value,
-        "REVISAO": modal.querySelector("#novoRevisao").value,
-        "CLIENTE": modal.querySelector("#novoCliente").value,
-        "COMPLEXIDADE": modal.querySelector("#novoComplexidade").value,
-        "TIPO": modal.querySelector("#novoTipo").value,
-        "ENTRADA": modal.querySelector("#novoEntrada").value,
-        "SHIP DATE": modal.querySelector("#novoShip").value,
-        "STATUS": modal.querySelector("#novoStatus").value,
-        "processos": processosSelecionados,
-        "tempos": tempos,
-        "componentes": componentes
-      };
+        const novo = {
+          "PART NUMBER": modal.querySelector("#novoPart").value,
+          "REVISAO": modal.querySelector("#novoRevisao").value,
+          "CLIENTE": modal.querySelector("#novoCliente").value,
+          "COMPLEXIDADE": modal.querySelector("#novoComplexidade").value,
+          "TIPO": modal.querySelector("#novoTipo").value,
+          "ENTRADA": modal.querySelector("#novoEntrada").value,
+          "SHIP DATE": modal.querySelector("#novoShip").value,
+          "STATUS": modal.querySelector("#novoStatus").value,
+          "processos": processosSelecionados,
+          "tempos": tempos,
+          "componentes": componentes
+        };
 
-      const novoId = await firebaseService.addProduto(novo);
-      // atualizar arrays locais (se existir lógica semelhante a original)
-      produtos.push({ id: novoId, ...novo });
-      produtosanuais.push({ id: novoId, ...novo });
+        const novoId = await firebaseService.addProduto(novo);
+        // atualizar arrays locais (se existir lógica semelhante a original)
+        produtos.push({ id: novoId, ...novo });
+        produtosanuais.push({ id: novoId, ...novo });
 
-      modal.remove();
-      renderTabela(); // se essa função existir no escopo (mantive o nome original)
-      graphData = agruparProdutosPorMes(produtosanuais);
-      statusData = gerarStatusData(produtosanuais, year, month);
-      console.log("Produto adicionado com sucesso!");
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao adicionar produto.");
-    }
-  });
-}
+        modal.remove();
+        renderTabela(); // se essa função existir no escopo (mantive o nome original)
+        graphData = agruparProdutosPorMes(produtosanuais);
+        statusData = gerarStatusData(produtosanuais, year, month);
+        console.log("Produto adicionado com sucesso!");
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao adicionar produto.");
+      }
+    });
+  }
 
 
 
   // ==== Funções auxiliares ====
-function editarProduto(produto) {
-  let modal = document.getElementById("modal-editar-produto");
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "modal-editar-produto";
-    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-    document.body.appendChild(modal);
-  }
+  function editarProduto(produto) {
+    let modal = document.getElementById("modal-editar-produto");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "modal-editar-produto";
+      modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+      document.body.appendChild(modal);
+    }
 
-  modal.innerHTML = `
+    modal.innerHTML = `
     <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">Editar Produto</h3>
       <div class="grid grid-cols-2 gap-4">
@@ -1418,7 +1713,7 @@ function editarProduto(produto) {
         <div class="col-span-2">
           <label class="font-bold">Processos:</label>
           <div class="flex flex-wrap gap-4 mt-2">
-            ${PROCESSOS.map(p => `<label class="flex items-center gap-2"><input type="checkbox" value="${p.id}" class="editProcesso" ${ (produto.processos || []).includes(p.id) ? 'checked':'' }> ${p.label}</label>`).join('')}
+            ${PROCESSOS.map(p => `<label class="flex items-center gap-2"><input type="checkbox" value="${p.id}" class="editProcesso" ${(produto.processos || []).includes(p.id) ? 'checked' : ''}> ${p.label}</label>`).join('')}
           </div>
           <div id="temposProcessosEdit" class="grid grid-cols-1 gap-3 mt-3"></div>
         </div>
@@ -1437,78 +1732,78 @@ function editarProduto(produto) {
     </div>
   `;
 
-  // montar campos de tempos com valores existentes (produto.tempos)
-  montarCamposTempoPorProcesso(modal, "editProcesso", "#temposProcessosEdit", produto.tempos || {});
+    // montar campos de tempos com valores existentes (produto.tempos)
+    montarCamposTempoPorProcesso(modal, "editProcesso", "#temposProcessosEdit", produto.tempos || {});
 
-  // mostrar/ocultar seção de componentes conforme tipo
-  modal.querySelector("#editTipo").addEventListener("change", () => {
-    const sec = modal.querySelector("#secaoComponentesEdit");
-    if (modal.querySelector("#editTipo").value === "CONJUNTO") sec.classList.remove("hidden");
-    else sec.classList.add("hidden");
-  });
+    // mostrar/ocultar seção de componentes conforme tipo
+    modal.querySelector("#editTipo").addEventListener("change", () => {
+      const sec = modal.querySelector("#secaoComponentesEdit");
+      if (modal.querySelector("#editTipo").value === "CONJUNTO") sec.classList.remove("hidden");
+      else sec.classList.add("hidden");
+    });
 
-  // renderizar componentes existentes
-  (produto.componentes || []).forEach(c => adicionarComponente(modal, "listaComponentesEdit", c));
+    // renderizar componentes existentes
+    (produto.componentes || []).forEach(c => adicionarComponente(modal, "listaComponentesEdit", c));
 
-  // bind adicionar componente
-  modal.querySelector("#btnAdicionarComponenteEdit").addEventListener("click", () => adicionarComponente(modal, "listaComponentesEdit"));
+    // bind adicionar componente
+    modal.querySelector("#btnAdicionarComponenteEdit").addEventListener("click", () => adicionarComponente(modal, "listaComponentesEdit"));
 
-  // cancelar
-  modal.querySelector("#cancelarEditar").addEventListener("click", ()=> modal.remove());
+    // cancelar
+    modal.querySelector("#cancelarEditar").addEventListener("click", () => modal.remove());
 
-  // salvar
-  modal.querySelector("#salvarEditar").addEventListener("click", async () => {
-    try {
-      const processosSelecionados = Array.from(modal.querySelectorAll(".editProcesso:checked")).map(cb => cb.value);
-      const tempos = coletarTemposPorProcesso(modal);
-      const componentes = coletarComponentes(modal, "listaComponentesEdit");
+    // salvar
+    modal.querySelector("#salvarEditar").addEventListener("click", async () => {
+      try {
+        const processosSelecionados = Array.from(modal.querySelectorAll(".editProcesso:checked")).map(cb => cb.value);
+        const tempos = coletarTemposPorProcesso(modal);
+        const componentes = coletarComponentes(modal, "listaComponentesEdit");
 
-      const atualizado = {
-        "PART NUMBER": modal.querySelector("#editPart").value,
-        "REVISAO": modal.querySelector("#editRevisao").value,
-        "CLIENTE": modal.querySelector("#editCliente").value,
-        "COMPLEXIDADE": modal.querySelector("#editComplexidade").value,
-        "TIPO": modal.querySelector("#editTipo").value,
-        "ENTRADA": modal.querySelector("#editEntrada").value,
-        "SHIP DATE": modal.querySelector("#editShip").value,
-        "STATUS": modal.querySelector("#editStatus").value,
-        "processos": processosSelecionados,
-        "tempos": tempos,
-        "componentes": componentes
-      };
+        const atualizado = {
+          "PART NUMBER": modal.querySelector("#editPart").value,
+          "REVISAO": modal.querySelector("#editRevisao").value,
+          "CLIENTE": modal.querySelector("#editCliente").value,
+          "COMPLEXIDADE": modal.querySelector("#editComplexidade").value,
+          "TIPO": modal.querySelector("#editTipo").value,
+          "ENTRADA": modal.querySelector("#editEntrada").value,
+          "SHIP DATE": modal.querySelector("#editShip").value,
+          "STATUS": modal.querySelector("#editStatus").value,
+          "processos": processosSelecionados,
+          "tempos": tempos,
+          "componentes": componentes
+        };
 
-      if (produto.id) {
-        await firebaseService.updateProduto(produto.id, atualizado);
+        if (produto.id) {
+          await firebaseService.updateProduto(produto.id, atualizado);
+        }
+
+        // atualiza arrays locais se necessário (seguir seu padrão)
+        const idxLocal = produtos.findIndex(p => p.id === produto.id);
+        if (idxLocal >= 0) produtos[idxLocal] = { id: produto.id, ...atualizado };
+        const globalIdx = produtosanuais.findIndex(p => p.id === produto.id);
+        if (globalIdx >= 0) produtosanuais[globalIdx] = { id: produto.id, ...atualizado };
+
+        modal.remove();
+        renderTabela();
+        console.log("Produto atualizado com sucesso!");
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao atualizar produto.");
       }
-
-      // atualiza arrays locais se necessário (seguir seu padrão)
-      const idxLocal = produtos.findIndex(p => p.id === produto.id);
-      if (idxLocal >= 0) produtos[idxLocal] = { id: produto.id, ...atualizado };
-      const globalIdx = produtosanuais.findIndex(p => p.id === produto.id);
-      if (globalIdx >= 0) produtosanuais[globalIdx] = { id: produto.id, ...atualizado };
-
-      modal.remove();
-      renderTabela();
-      console.log("Produto atualizado com sucesso!");
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao atualizar produto.");
-    }
-  });
-}
-
-  
-// === Visualizar Produto ===
-function visualizarProduto(produto) {
-  let modal = document.getElementById("modal-visualizar-produto");
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "modal-visualizar-produto";
-    modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
-    document.body.appendChild(modal);
+    });
   }
 
-  modal.innerHTML = `
+
+  // === Visualizar Produto ===
+  function visualizarProduto(produto) {
+    let modal = document.getElementById("modal-visualizar-produto");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "modal-visualizar-produto";
+      modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
     <div class="bg-white rounded-lg shadow-lg p-6 w-1/2 max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold mb-4">Visualizar Produto</h3>
       <div class="grid grid-cols-2 gap-4">
@@ -1525,9 +1820,9 @@ function visualizarProduto(produto) {
           <label class="font-bold">Processos Selecionados</label>
           <div class="flex flex-wrap gap-2 mt-2">
             ${(PROCESSOS.map(p => {
-              const checked = (produto.processos || []).includes(p.id) ? 'checked' : '';
-              return `<label class="flex items-center gap-2"><input type="checkbox" disabled ${checked}> ${p.label}</label>`;
-            })).join('')}
+      const checked = (produto.processos || []).includes(p.id) ? 'checked' : '';
+      return `<label class="flex items-center gap-2"><input type="checkbox" disabled ${checked}> ${p.label}</label>`;
+    })).join('')}
           </div>
         </div>
 
@@ -1545,29 +1840,29 @@ function visualizarProduto(produto) {
     </div>
   `;
 
-  // montar view de tempos por processo (readonly)
-  const processosList = produto.processos && produto.processos.length ? produto.processos : Object.keys(produto.tempos || {});
-  montarCamposTempoView(modal.querySelector('#temposProcessosView'), processosList, produto.tempos || {});
+    // montar view de tempos por processo (readonly)
+    const processosList = produto.processos && produto.processos.length ? produto.processos : Object.keys(produto.tempos || {});
+    montarCamposTempoView(modal.querySelector('#temposProcessosView'), processosList, produto.tempos || {});
 
-  // renderizar componentes (readonly)
-  const lista = modal.querySelector("#listaComponentesView");
-  (produto.componentes || []).forEach(c => {
-    const div = document.createElement('div');
-    div.className = 'border rounded p-3 bg-gray-100 mb-2';
+    // renderizar componentes (readonly)
+    const lista = modal.querySelector("#listaComponentesView");
+    (produto.componentes || []).forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'border rounded p-3 bg-gray-100 mb-2';
 
-    const compTemposHtml = ['comercial','engenharia','homologado'].map(area=>{
-      const tv = (c.tempos && c.tempos[area]) || {};
-      const cap = area.charAt(0).toUpperCase() + area.slice(1);
-      return `
+      const compTemposHtml = ['comercial', 'engenharia', 'homologado'].map(area => {
+        const tv = (c.tempos && c.tempos[area]) || {};
+        const cap = area.charAt(0).toUpperCase() + area.slice(1);
+        return `
         <div>
           <div class="font-semibold">${cap}</div>
           <div class="text-sm">Setup: ${tv.setup ?? '-'}</div>
           <div class="text-sm">Ciclo: ${tv.ciclo ?? '-'}</div>
         </div>
       `;
-    }).join('');
+      }).join('');
 
-    div.innerHTML = `
+      div.innerHTML = `
       <div class="grid grid-cols-2 gap-2">
         <input type="text" value="${c.partNumber || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
         <input type="text" value="${c.revisao || ''}" disabled class="border px-2 py-1 rounded bg-gray-100 w-full"/>
@@ -1579,16 +1874,16 @@ function visualizarProduto(produto) {
         ${compTemposHtml}
       </div>
     `;
-    lista.appendChild(div);
-  });
+      lista.appendChild(div);
+    });
 
-  modal.querySelector("#fecharVisualizar").addEventListener("click", ()=> modal.remove());
-}
-
-
+    modal.querySelector("#fecharVisualizar").addEventListener("click", () => modal.remove());
+  }
 
 
-    // Captura clientes únicos para popular select
+
+
+  // Captura clientes únicos para popular select
   const clientesUnicos = [...new Set(produtos.map(p => p.CLIENTE).filter(Boolean))];
   const selectCliente = $('#filtroCliente', mount);
   clientesUnicos.forEach(c => {
@@ -1599,7 +1894,7 @@ function visualizarProduto(produto) {
   });
 
   // Eventos dos filtros
-  ['#filtroProdutos','#filtroCliente','#filtroProcesso','#filtroDataInicio']
+  ['#filtroProdutos', '#filtroCliente', '#filtroProcesso', '#filtroDataInicio']
     .forEach(sel => {
       $(sel, mount).addEventListener("input", renderTabela);
       $(sel, mount).addEventListener("change", renderTabela);
@@ -1607,7 +1902,7 @@ function visualizarProduto(produto) {
 
 }
 
-  // init
+// init
 App();
 
 // ======== Página de Gráficos ========
@@ -1664,7 +1959,7 @@ function GraficosPage(mount) {
       </div>
     </div>
   `;
-  
+
   let graficoComplexidadeInstance = null;
   let graficoBlankConjuntoInstance = null;
 
@@ -1731,20 +2026,20 @@ function GraficosPage(mount) {
       }
 
       if (clienteSelecionado && p.CLIENTE !== clienteSelecionado) return false;
-      
+
       return true;
     });
 
     // Atualizar gráfico de complexidade
     atualizarGraficoComplexidade(produtosFiltrados);
-    
+
     // Atualizar gráfico Blank x Conjunto
     atualizarGraficoBlankConjunto(produtosFiltrados);
   }
 
   function atualizarGraficoComplexidade(produtos) {
     const complexidades = { 'BAIXA': 0, 'MÉDIA': 0, 'ALTA': 0, 'NÃO DEFINIDA': 0 };
-    
+
     produtos.forEach(p => {
       const complexidade = p.COMPLEXIDADE || 'NÃO DEFINIDA';
       if (complexidades.hasOwnProperty(complexidade)) {
@@ -1755,7 +2050,7 @@ function GraficosPage(mount) {
     });
 
     const ctx = document.getElementById('graficoComplexidade').getContext('2d');
-    
+
     if (graficoComplexidadeInstance) {
       graficoComplexidadeInstance.destroy();
     }
@@ -1766,15 +2061,15 @@ function GraficosPage(mount) {
         labels: Object.keys(complexidades),
         datasets: [{
           data: Object.values(complexidades),
-          backgroundColor: ['#10B981','#F59E0B','#EF4444','#6B7280'],
+          backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#6B7280'],
           borderWidth: 2,
           borderColor: '#ffffff'
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true, 
-        aspectRatio: 1, 
+        maintainAspectRatio: true,
+        aspectRatio: 1,
         plugins: {
           legend: {
             position: 'bottom',
@@ -1796,7 +2091,7 @@ function GraficosPage(mount) {
           }
         }
       }
-          ,
+      ,
       plugins: [ChartDataLabels] // precisa registrar
     });
   }
@@ -1804,15 +2099,15 @@ function GraficosPage(mount) {
   function atualizarGraficoBlankConjunto(produtos) {
     // Agrupar por cliente e tipo
     const dadosPorCliente = {};
-    
+
     produtos.forEach(p => {
       const cliente = p.CLIENTE || 'Não Definido';
       const tipo = p.TIPO || 'Não Definido';
-      
+
       if (!dadosPorCliente[cliente]) {
         dadosPorCliente[cliente] = { BLANK: 0, CONJUNTO: 0, 'Não Definido': 0 };
       }
-      
+
       if (dadosPorCliente[cliente].hasOwnProperty(tipo)) {
         dadosPorCliente[cliente][tipo]++;
       } else {
@@ -1826,7 +2121,7 @@ function GraficosPage(mount) {
     const dadosNaoDefinido = clientes.map(c => dadosPorCliente[c]['Não Definido'] || 0);
 
     const ctx = document.getElementById('graficoBlankConjunto').getContext('2d');
-    
+
     if (graficoBlankConjuntoInstance) {
       graficoBlankConjuntoInstance.destroy();
     }
@@ -1938,24 +2233,24 @@ function ForecastPage(mount) {
 
   // Eventos
   document.getElementById('btnProcessarForecast').addEventListener('click', processarArquivoForecast);
-  
+
   // Carregar dados existentes do Firebase se houver
   carregarForecastDoFirebase();
 
   function processarArquivoForecast() {
     const fileInput = document.getElementById('uploadForecast');
     const file = fileInput.files[0];
-    
+
     if (!file) {
       alert('Por favor, selecione um arquivo JSON.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       try {
         const dados = JSON.parse(e.target.result);
-        
+
         if (!Array.isArray(dados)) {
           throw new Error('O arquivo deve conter um array de objetos.');
         }
@@ -1973,15 +2268,15 @@ function ForecastPage(mount) {
         // Salvar no Firebase e atualizar tabela
         salvarForecastNoFirebase(dadosValidos);
         renderizarTabelaForecast(dadosValidos);
-        
+
         alert(`${dadosValidos.length} registros de forecast processados com sucesso!`);
-        
+
       } catch (error) {
         console.error('Erro ao processar arquivo:', error);
         alert('Erro ao processar arquivo: ' + error.message);
       }
     };
-    
+
     reader.readAsText(file);
   }
 
@@ -2021,7 +2316,7 @@ function ForecastPage(mount) {
       return;
     }
 
-    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
     tabela.innerHTML = dados.map(item => {
       return `
@@ -2039,10 +2334,10 @@ function ForecastPage(mount) {
         </tr>
       `;
     }).join('');
-}
+  }
 
   // Função global para remover item
-  window.removerItemForecast = function(partNumber) {
+  window.removerItemForecast = function (partNumber) {
     try {
       const dados = JSON.parse(localStorage.getItem('forecastData') || '[]');
       const dadosFiltrados = dados.filter(item => item.partNumber !== partNumber);
@@ -2073,7 +2368,7 @@ function renderizarListaComponentes(componentes = []) {
 function adicionarComponente(modal, listaId = 'listaComponentes', compVals = {}) {
   const lista = modal.querySelector(`#${listaId}`);
   if (!lista) return;
-  const componenteId = 'comp_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+  const componenteId = 'comp_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
 
   const v = compVals || {};
   const div = document.createElement('div');
@@ -2081,7 +2376,7 @@ function adicionarComponente(modal, listaId = 'listaComponentes', compVals = {})
   div.dataset.componenteId = componenteId;
 
   // tempos por componente: comercial/engenharia/homologado -> setup/ciclo
-  const areas = ['comercial','engenharia','homologado'];
+  const areas = ['comercial', 'engenharia', 'homologado'];
   const temposHtml = areas.map(area => {
     const tv = (v.tempos && v.tempos[area]) || {};
     const cap = area.charAt(0).toUpperCase() + area.slice(1);
@@ -2135,7 +2430,7 @@ function adicionarComponente(modal, listaId = 'listaComponentes', compVals = {})
   `;
 
   // evento remover
-  div.querySelector('.remover-componente').addEventListener('click', ()=> div.remove());
+  div.querySelector('.remover-componente').addEventListener('click', () => div.remove());
 
   lista.appendChild(div);
 }
@@ -2147,12 +2442,12 @@ function coletarComponentes(modal, listaId = 'listaComponentes') {
   if (!lista) return componentes;
 
   Array.from(lista.querySelectorAll('[data-componente-id]')).forEach(div => {
-    const tempos = { comercial:{setup:0,ciclo:0}, engenharia:{setup:0,ciclo:0}, homologado:{setup:0,ciclo:0} };
+    const tempos = { comercial: { setup: 0, ciclo: 0 }, engenharia: { setup: 0, ciclo: 0 }, homologado: { setup: 0, ciclo: 0 } };
     div.querySelectorAll('.comp-tempo').forEach(inp => {
       const area = inp.dataset.area;
       const field = inp.dataset.field;
       const v = parseFloat(inp.value);
-      if (!tempos[area]) tempos[area] = { setup:0, ciclo:0 };
+      if (!tempos[area]) tempos[area] = { setup: 0, ciclo: 0 };
       tempos[area][field] = isNaN(v) ? 0 : v;
     });
 
@@ -2183,12 +2478,12 @@ function adicionarComponenteEdit(modal, compVals) {
 function renderizarComponentesEdit(modal, componentes = []) {
   const listaComponentes = modal.querySelector("#listaComponentesEdit");
   listaComponentes.innerHTML = "";
-  
+
   componentes.forEach(comp => {
     const componenteDiv = document.createElement("div");
     componenteDiv.className = "border rounded p-3 bg-gray-50";
     componenteDiv.dataset.componenteId = comp.id || Date.now();
-    
+
     componenteDiv.innerHTML = `
       <div class="grid grid-cols-2 gap-2">
         <input type="text" placeholder="Part Number do Componente" value="${comp.partNumber || ''}" class="border px-2 py-1 rounded componente-part-edit"/>
@@ -2222,9 +2517,9 @@ function renderizarComponentesEdit(modal, componentes = []) {
         </button>
       </div>
     `;
-    
+
     listaComponentes.appendChild(componenteDiv);
-    
+
     // Evento para remover componente
     componenteDiv.querySelector(".remover-componente-edit").addEventListener("click", () => {
       componenteDiv.remove();
@@ -2233,3 +2528,4 @@ function renderizarComponentesEdit(modal, componentes = []) {
 }
 
 
+window.chanfroService = chanfroService;
