@@ -425,17 +425,17 @@ function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, v
             </div>
 
           <div>
-          <label class="text-base" title="Informe a quantidade de sapatas que o operador não utiliza, antes da ferramenta chegar na peça">Sapatas (qtd)</label>
-          <input type="number" class="tempoProc w-full"
-            data-proc="${proc}" data-area="${area}" data-field="sapata"
-            value="${v.sapata || ''}">
-          </div>
-
-          <div>
-          <label class="text-base" title="Informe a quantidade de chanfros que será feita">N° Chanfros</label>
+          <label class="text-base" title="Informe a quantidade de chanfros que será feita em uma peça">N° Chanfros (qtd)</label>
           <input type="number" class="tempoProc w-full"
             data-proc="${proc}" data-area="${area}" data-field="nchanfro"
             value="${v.nchanfro || ''}">
+          </div>
+
+          <div>
+          <label class="text-base" title="Informe a quantidade de peças que o operador vai colocar na mesa">N° de Peças</label>
+          <input type="number" class="tempoProc w-full"
+            data-proc="${proc}" data-area="${area}" data-field="npecas"
+            value="${v.npecas || ''}">
           </div>
 
           </div>
@@ -503,14 +503,10 @@ function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, v
 
 const acabamento = 30;
 const retirarPeca = 30;
-const distSapata = 255
-
 
 const movimentacao = {
-  ima: 120,
-  girarPecaPesada: 60,
+  ima: 150,
   manual: 20,
-  girarPecaLeve: 30
 };
 
 const objAuxiliar = {
@@ -550,26 +546,18 @@ class chanfroService {
     return tempos_shinx[maquina]
   }
 
-  //Calcula a distancia com base em quantas sapatas ele n utilizou até chegar na peça
-  static distanciaSapata(sapata) {
-    return distSapata * sapata;
-  }
-
   //Tempo que a máquina demora para executar o chanfro
-  static tempoChanfro(perimetro, maq, distancia, peso, cateto) {
-    const perimetroTotal = perimetro + distancia;
-
-    return peso <= 20 || cateto >= 15 ? maq.tempoChanfro3 * perimetroTotal : maq.tempoChanfro8 * perimetroTotal;
+  static tempoChanfro(perimetro, maq, peso, cateto) {
+    return peso <= 20 || cateto >= 15 ? (maq.tempoChanfro3 * perimetro) : (maq.tempoChanfro8 * perimetro);
   }
 
   //Tempo que a máquina demora paraa voltar para a posição inicial
-  static tempoVolta(perimetro, maq, distancia) {
-    const perimetroTotal = perimetro + distancia;
-    return maq.tempoVolta * perimetroTotal;
+  static tempoVolta(perimetro, maq) {
+    return (maq.tempoVolta * perimetro);
   }
 
   static validarNumeros(valor){
-    if(valor >= 0){
+    if(valor > 0){
       return Number(valor)
     }
     else {
@@ -590,30 +578,41 @@ class chanfroService {
       cateto: this.validarNumeros(card.querySelector(`[data-field="cateto"]`).value),
       maquina: "shinx1",
       dispositivo: 1,
-      sapata: this.validarNumeros(card.querySelector(`[data-field="sapata"]`).value),
       nchanfro: this.validarNumeros(card.querySelector(`[data-field="nchanfro"]`).value),
+      npecas: this.validarNumeros(card.querySelector(`[data-field="npecas"]`).value),
     };
 
-    const distSapata = this.distanciaSapata(dados.sapata);
     const mov = this.validarPeso(dados.peso);
     const objAux = this.validarComprimento(dados.comprimento);
     const dispositivo = this.validarDispositivo(dados.dispositivo);
     const maq = this.validarMaquina(dados.maquina);
-    const chanfro = this.tempoChanfro(dados.perimetro, maq, distSapata, dados.peso, dados.cateto);
-    const volta = this.tempoVolta(dados.perimetro, maq, distSapata);
+    let chanfro = this.tempoChanfro(dados.perimetro, maq, dados.peso, dados.cateto);
+    let volta = this.tempoVolta(dados.perimetro, maq);
+
+    let chanfroCiclo = 0;
+    let voltaCiclo = 0;
+
+
+    if(dados.nchanfro > 1){
+      chanfroCiclo += chanfro * dados.nchanfro;
+      voltaCiclo += volta * dados.nchanfro
+    } else {
+      chanfroCiclo = chanfro;
+      voltaCiclo = volta;
+    }
 
     const ciclo =
       mov +
-      chanfro +
+      chanfroCiclo +
       acabamento +
       retirarPeca +
       dispositivo +
-      volta;
+      voltaCiclo;
 
     let tempoCiclo = 0;
-    const ciclosVariosChanfros = ciclo * dados.nchanfro;
+    const ciclosVariosChanfros = ciclo * dados.npecas;
 
-    dados.nchanfro >= 2 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
+    dados.npecas > 1 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
 
     const setup =
       chanfro +
@@ -650,30 +649,38 @@ class chanfroService {
       cateto: valores.cateto,
       maquina: "shinx1",
       dispositivo: 1,
-      sapata: valores.sapata,
-      nchanfro: valores.nchanfro
+      nchanfro: valores.nchanfro,
+      npecas: valores.npecas
     };
 
-    const distSapata = this.distanciaSapata(dados.sapata);
     const mov = this.validarPeso(dados.peso);
     const objAux = this.validarComprimento(dados.comprimento);
     const dispositivo = this.validarDispositivo(dados.dispositivo);
     const maq = this.validarMaquina(dados.maquina);
-    const chanfro = this.tempoChanfro(dados.perimetro, maq, distSapata, dados.peso, dados.cateto);
-    const volta = this.tempoVolta(dados.perimetro, maq, distSapata);
+    const chanfro = this.tempoChanfro(dados.perimetro, maq, dados.peso, dados.cateto);
+    const volta = this.tempoVolta(dados.perimetro, maq);
+
+    let chanfroCiclo = 0;
+    let voltaCiclo = 0;
+
+
+    if(dados.nchanfro > 1){
+      chanfroCiclo += chanfro * dados.nchanfro;
+      voltaCiclo += volta * dados.nchanfro
+    } 
 
     const ciclo =
       mov +
-      chanfro +
+      chanfroCiclo +
       acabamento +
       retirarPeca +
       dispositivo +
-      volta;
+      voltaCiclo;
 
     let tempoCiclo = 0;
-    const ciclosVariosChanfros = ciclo * dados.nchanfro;
+    const ciclosVariosChanfros = ciclo * dados.npecas;
 
-    dados.nchanfro >= 2 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
+    dados.npecas > 1 ? tempoCiclo += ciclosVariosChanfros : tempoCiclo += ciclo
 
     const setup =
       chanfro +
