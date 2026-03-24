@@ -411,7 +411,7 @@ function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, v
           </div>
 
           <div>
-          <label class="text-base" title="Informe o tamanho do chanfro(comprimento) em milímetros">Perimetro (mm)</label>
+          <label class="text-base" title="Informe o tamanho do chanfro(comprimento) em milímetros">Perímetro (mm)</label>
           <input type="number" class="tempoProc w-full"
             data-proc="${proc}" data-area="${area}" data-field="perimetro"
             value="${v.perimetro || ''}">
@@ -425,7 +425,7 @@ function montarCamposTempoPorProcesso(modal, classeCheckbox, seletorContainer, v
             </div>
 
           <div>
-          <label class="text-base" title="Informe a quantidade de chanfros que será feita em uma peça">N° Chanfros (qtd)</label>
+          <label class="text-base" title="Informe a quantidade de chanfros diferentes que será feita em uma peça">N° Chanfros diferentes (qtd)</label>
           <input type="number" class="tempoProc w-full"
             data-proc="${proc}" data-area="${area}" data-field="nchanfro"
             value="${v.nchanfro || ''}">
@@ -547,8 +547,8 @@ class chanfroService {
   }
 
   //Tempo que a máquina demora para executar o chanfro
-  static tempoChanfro(perimetro, maq, peso, cateto) {
-    return peso <= 20 || cateto >= 15 ? (maq.tempoChanfro3 * perimetro) : (maq.tempoChanfro8 * perimetro);
+  static tempoChanfro(perimetro, maq, cateto) {
+    return cateto >= 15 ? (maq.tempoChanfro3 * perimetro) : (maq.tempoChanfro8 * perimetro);
   }
 
   //Tempo que a máquina demora paraa voltar para a posição inicial
@@ -586,16 +586,18 @@ class chanfroService {
     const objAux = this.validarComprimento(dados.comprimento);
     const dispositivo = this.validarDispositivo(dados.dispositivo);
     const maq = this.validarMaquina(dados.maquina);
-    let chanfro = this.tempoChanfro(dados.perimetro, maq, dados.peso, dados.cateto);
+    let chanfro = this.tempoChanfro(dados.perimetro, maq, dados.cateto);
     let volta = this.tempoVolta(dados.perimetro, maq);
 
     let chanfroCiclo = 0;
     let voltaCiclo = 0;
+    let tempoSetupChanfrosDiferentes = 480;
 
 
     if(dados.nchanfro > 1){
-      chanfroCiclo += chanfro * dados.nchanfro;
+      chanfroCiclo += (chanfro * dados.nchanfro) + mov;
       voltaCiclo += volta * dados.nchanfro
+      tempoSetupChanfrosDiferentes *= dados.nchanfro
     } else {
       chanfroCiclo = chanfro;
       voltaCiclo = volta;
@@ -618,7 +620,8 @@ class chanfroService {
       chanfro +
       volta +
       tempos_shinx.shinx1.setupChanfro +
-      objAux;
+      objAux+
+      tempoSetupChanfrosDiferentes;
 
     function converterTempo(minutosDecimais) {
       let minutos = Math.floor(minutosDecimais);
@@ -662,11 +665,13 @@ class chanfroService {
 
     let chanfroCiclo = 0;
     let voltaCiclo = 0;
+    let tempoSetupChanfrosDiferentes= 480;
 
 
     if(dados.nchanfro > 1){
       chanfroCiclo += chanfro * dados.nchanfro;
       voltaCiclo += volta * dados.nchanfro
+      tempoSetupChanfrosDiferentes *= dados.nchanfro
     } 
 
     const ciclo =
@@ -686,7 +691,8 @@ class chanfroService {
       chanfro +
       volta +
       tempos_shinx.shinx1.setupChanfro +
-      objAux;
+      objAux+
+      tempoSetupChanfrosDiferentes;
 
     function converterTempo(minutosDecimais) {
       let minutos = Math.floor(minutosDecimais);
