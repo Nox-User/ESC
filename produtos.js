@@ -591,13 +591,13 @@ class chanfroService {
 
     let chanfroCiclo = 0;
     let voltaCiclo = 0;
-    let tempoSetupChanfrosDiferentes = 480;
+    let tempoSetupChanfrosDiferentes = 0;
 
 
     if(dados.nchanfro > 1){
       chanfroCiclo += (chanfro * dados.nchanfro) + mov;
       voltaCiclo += volta * dados.nchanfro
-      tempoSetupChanfrosDiferentes *= dados.nchanfro
+      tempoSetupChanfrosDiferentes = 480 * dados.nchanfro
     } else {
       chanfroCiclo = chanfro;
       voltaCiclo = volta;
